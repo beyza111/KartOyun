@@ -1,6 +1,7 @@
 ﻿using UnityEngine;
+using UnityEngine.EventSystems;
 
-public class CardValue : MonoBehaviour
+public class CardValue : MonoBehaviour, IPointerClickHandler
 {
     public int value; // Kart değeri
     public CardData cardData; // CardData referansı
@@ -15,9 +16,10 @@ public class CardValue : MonoBehaviour
     private Color originalColor; // Kartın orijinal rengi
     private TurnManager turnManager;
 
+    public Texture2D cursorTexture; // Yeni imleç için Texture2D
+
     private void Awake()
     {
-        // Renderer bileşenini al
         cardRenderer = GetComponent<Renderer>();
         if (cardRenderer == null)
         {
@@ -25,13 +27,9 @@ public class CardValue : MonoBehaviour
             return;
         }
 
-        // Kartın orijinal rengini sakla
         originalColor = cardRenderer.material.color;
-
-        // TurnManager'ı bul
         turnManager = FindObjectOfType<TurnManager>();
 
-        // Collider kontrolü
         if (!GetComponent<Collider>())
         {
             Debug.LogWarning($"CardValue: No collider found on {gameObject.name}. Adding BoxCollider.");
@@ -39,58 +37,44 @@ public class CardValue : MonoBehaviour
         }
     }
 
-    public void FlipCard(bool showBack)
+    private void Update()
     {
-        if (cardData == null)
+        // 4. turda özel imleci aktif et
+        if (turnManager.currentTurn == 4 && cursorTexture != null)
         {
-            Debug.LogError($"CardValue: Missing cardData on {gameObject.name}.");
+            Cursor.SetCursor(cursorTexture, Vector2.zero, CursorMode.Auto);
+        }
+        else
+        {
+            Cursor.SetCursor(null, Vector2.zero, CursorMode.Auto);
+        }
+    }
+
+    public void OnPointerClick(PointerEventData eventData)
+    {
+        if (!isSwapTurnActive)
+        {
+            Debug.LogWarning("Swap turn is not active. Cannot select card.");
             return;
         }
 
-        // Kartı çevir
-        cardData.cardPrefab.SetActive(!showBack);
-        cardData.backcardPrefab.SetActive(showBack);
-    }
-
-    public void HighlightCard(bool highlight)
-    {
-        if (cardRenderer != null && !isSelected) // Eğer kart seçili değilse highlight uygula
+        if (IsLocked)
         {
-            cardRenderer.material.color = highlight ? Color.yellow : originalColor;
+            Debug.LogWarning($"Card {value} is locked and cannot be selected.");
+            return;
         }
-    }
-
-    private void OnMouseEnter()
-    {
-        // Sadece swap turunda ve kart kilitli değilken highlight
-        if (isSwapTurnActive && !IsLocked)
-        {
-            HighlightCard(true);
-        }
-    }
-
-    private void OnMouseExit()
-    {
-        // Highlight kaldır
-        HighlightCard(false);
-    }
-
-    private void OnMouseDown()
-    {
-        // Yalnızca swap turunda çalış ve kart kilitli değilse işlem yap
-        if (!isSwapTurnActive || IsLocked) return;
 
         if (Owner == CardOwner.Player && turnManager.PlayerLockedCard == null)
         {
-            Debug.Log($"Player clicked to lock card with value: {value}");
-            turnManager.LockPlayerCard(this); // Oyuncunun kilitleme seçimini bildir
-            SelectCard(true); // Kartı seçili olarak işaretle
+            Debug.Log($"Player locked card with value: {value}");
+            turnManager.LockPlayerCard(this);
+            SelectCard(true);
         }
         else if (Owner == CardOwner.NPC && turnManager.PlayerSelectedCardForSwap == null)
         {
             Debug.Log($"Player selected NPC card for swap with value: {value}");
-            turnManager.SelectPlayerCardForSwap(this); // Oyuncunun swap seçimini bildir
-            SelectCard(true); // Kartı seçili olarak işaretle
+            turnManager.SelectPlayerCardForSwap(this);
+            SelectCard(true);
         }
         else
         {
@@ -98,11 +82,54 @@ public class CardValue : MonoBehaviour
         }
     }
 
+    public void HighlightCard(bool highlight)
+    {
+        if (cardRenderer != null && !isSelected)
+        {
+            cardRenderer.material.color = highlight ? originalColor * 1.5f : originalColor;
+            if (highlight && turnManager.currentTurn == 4)
+            {
+                Debug.Log($"{gameObject.name} highlighting: {highlight} (4th turn)");
+            }
+        }
+    }
+
+    private void OnMouseEnter()
+    {
+        if (isSwapTurnActive && !IsLocked)
+        {
+            HighlightCard(true);
+            if (cursorTexture != null)
+            {
+                Cursor.SetCursor(cursorTexture, Vector2.zero, CursorMode.Auto);
+            }
+
+            if (turnManager.currentTurn == 4)
+            {
+                Debug.Log($"{gameObject.name} hovered (4th turn, Swap Active).");
+            }
+        }
+    }
+
+    private void OnMouseExit()
+    {
+        if (!isSelected)
+        {
+            HighlightCard(false);
+        }
+
+        Cursor.SetCursor(null, Vector2.zero, CursorMode.Auto);
+        if (turnManager.currentTurn == 4)
+        {
+            Debug.Log($"{gameObject.name} hover ended (4th turn).");
+        }
+    }
+
     public void SetSwapTurnActive(bool isActive)
     {
         isSwapTurnActive = isActive;
+        Debug.Log($"{gameObject.name} Swap Turn Active: {isActive}");
 
-        // Swap turu sona erdiğinde tüm görsel değişiklikleri sıfırla
         if (!isActive)
         {
             HighlightCard(false);
@@ -114,13 +141,25 @@ public class CardValue : MonoBehaviour
     {
         isSelected = select;
 
-        // Seçili kart yeşil renkte gösterilir
         if (cardRenderer != null)
         {
-            cardRenderer.material.color = select ? Color.green : originalColor;
+            cardRenderer.material.color = select ? originalColor * 2f : originalColor; // Parlaklık artırılmış efekt
+        }
+
+        if (select)
+        {
+            Debug.Log($"{(Owner == CardOwner.Player ? "Player" : "NPC")} selected card with value: {value}");
         }
     }
+    private void OnMouseDown()
+    {
+        Debug.Log($"{gameObject.name} clicked!");
+    }
+
 }
+
+
+
 
 
 

@@ -108,6 +108,8 @@ public class TurnUIManager : MonoBehaviour
             Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
             if (Physics.Raycast(ray, out RaycastHit hit))
             {
+                Debug.Log($"Raycast hit: {hit.collider.gameObject.name}");
+
                 CardValue cardValue = hit.collider.GetComponent<CardValue>();
                 if (cardValue != null)
                 {
@@ -119,10 +121,23 @@ public class TurnUIManager : MonoBehaviour
                     {
                         SwapWithNPC(cardValue);
                     }
+                    else
+                    {
+                        Debug.LogWarning("No active selection mode for card interaction.");
+                    }
                 }
+                else
+                {
+                    Debug.LogWarning("Raycast hit something that is not a CardValue.");
+                }
+            }
+            else
+            {
+                Debug.Log("Raycast did not hit anything.");
             }
         }
     }
+
 
     private void LockPlayerCard(CardValue card)
     {
