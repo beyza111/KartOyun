@@ -10,7 +10,7 @@ public class TurnManager : MonoBehaviour
     public TurnUIManager uiManager;
     public NPCController npcController;
 
-    public GameObject selectionCursor; // Seçim için imleç objesi
+    
 
     public CardValue PlayerLockedCard { get; private set; }
     public CardValue PlayerSelectedCardForSwap { get; private set; }
@@ -26,7 +26,7 @@ public class TurnManager : MonoBehaviour
         PlayTurn();
     }
 
-    private void PlayTurn()
+    public void PlayTurn()
     {
         Debug.Log($"Turn {currentTurn} started.");
         isPlayerActionComplete = false; // Her tur başlangıcında sıfırla (yalnızca swap turunda kullanılacak)
@@ -232,7 +232,7 @@ public class TurnManager : MonoBehaviour
         card.SelectCard(true);
     }
 
-    private void UpdateScores()
+    public void UpdateScores()
     {
         uiManager.UpdateScores(cardSpawner.playerScore, cardSpawner.npcScore);
         Debug.Log($"Player Score: {cardSpawner.playerScore}, NPC Score: {cardSpawner.npcScore}");

@@ -1,5 +1,6 @@
 ﻿using UnityEngine;
 using UnityEngine.EventSystems;
+using System.Collections;
 
 public class CardValue : MonoBehaviour, IPointerClickHandler
 {
@@ -15,8 +16,9 @@ public class CardValue : MonoBehaviour, IPointerClickHandler
     private bool isSelected = false; // Kart seçili mi?
     private Color originalColor; // Kartın orijinal rengi
     private TurnManager turnManager;
-
-    public Texture2D cursorTexture; // Yeni imleç için Texture2D
+    private Coroutine lockCoroutine;
+    private static CardValue selectedPlayerCard;
+    private static CardValue selectedNPCCard;
 
     private void Awake()
     {
@@ -37,19 +39,6 @@ public class CardValue : MonoBehaviour, IPointerClickHandler
         }
     }
 
-    private void Update()
-    {
-        // 4. turda özel imleci aktif et
-        if (turnManager.currentTurn == 4 && cursorTexture != null)
-        {
-            Cursor.SetCursor(cursorTexture, Vector2.zero, CursorMode.Auto);
-        }
-        else
-        {
-            Cursor.SetCursor(null, Vector2.zero, CursorMode.Auto);
-        }
-    }
-
     public void OnPointerClick(PointerEventData eventData)
     {
         if (!isSwapTurnActive)
@@ -64,21 +53,33 @@ public class CardValue : MonoBehaviour, IPointerClickHandler
             return;
         }
 
-        if (Owner == CardOwner.Player && turnManager.PlayerLockedCard == null)
+        if (Owner == CardOwner.Player && selectedPlayerCard == null)
         {
-            Debug.Log($"Player locked card with value: {value}");
-            turnManager.LockPlayerCard(this);
+            selectedPlayerCard = this;
+            Debug.Log($"Player selected card with value: {value}");
             SelectCard(true);
         }
-        else if (Owner == CardOwner.NPC && turnManager.PlayerSelectedCardForSwap == null)
+        else if (Owner == CardOwner.NPC && selectedPlayerCard != null && selectedNPCCard == null)
         {
-            Debug.Log($"Player selected NPC card for swap with value: {value}");
-            turnManager.SelectPlayerCardForSwap(this);
+            selectedNPCCard = this;
+            Debug.Log($"NPC card selected with value: {value}");
             SelectCard(true);
+
+            if (!selectedNPCCard.IsLocked)
+            {
+                PerformSwap(selectedPlayerCard, selectedNPCCard);
+            }
+            else
+            {
+                Debug.Log("NPC card is locked. Swap will not occur.");
+            }
+
+            // Seçim tamamlandı, seçimleri sıfırla
+            ResetSelections();
         }
         else
         {
-            Debug.LogWarning("Invalid action or duplicate selection detected.");
+            Debug.LogWarning("Invalid or duplicate selection detected.");
         }
     }
 
@@ -99,14 +100,9 @@ public class CardValue : MonoBehaviour, IPointerClickHandler
         if (isSwapTurnActive && !IsLocked)
         {
             HighlightCard(true);
-            if (cursorTexture != null)
+            if (lockCoroutine == null)
             {
-                Cursor.SetCursor(cursorTexture, Vector2.zero, CursorMode.Auto);
-            }
-
-            if (turnManager.currentTurn == 4)
-            {
-                Debug.Log($"{gameObject.name} hovered (4th turn, Swap Active).");
+                lockCoroutine = StartCoroutine(LockCardAfterDelay());
             }
         }
     }
@@ -117,11 +113,46 @@ public class CardValue : MonoBehaviour, IPointerClickHandler
         {
             HighlightCard(false);
         }
-
-        Cursor.SetCursor(null, Vector2.zero, CursorMode.Auto);
-        if (turnManager.currentTurn == 4)
+        if (lockCoroutine != null)
         {
-            Debug.Log($"{gameObject.name} hover ended (4th turn).");
+            StopCoroutine(lockCoroutine);
+            lockCoroutine = null;
+            Debug.Log($"{gameObject.name}: Lock process canceled.");
+        }
+    }
+
+    private IEnumerator LockCardAfterDelay()
+    {
+        Debug.Log($"{gameObject.name}: Locking process started.");
+        yield return new WaitForSeconds(3f); // 3 saniye bekle
+
+        if (!IsLocked)
+        {
+            Debug.Log($"{gameObject.name}: Card locked after 3 seconds.");
+            IsLocked = true;
+            turnManager.LockPlayerCard(this); // Kart kilitlendiğinde PlayerLockedCard set edilir
+
+            if (Owner == CardOwner.Player && selectedPlayerCard == null)
+            {
+                selectedPlayerCard = this;
+                Debug.Log($"Player auto-selected card with value: {value}");
+            }
+            else if (Owner == CardOwner.NPC && selectedNPCCard == null && selectedPlayerCard != null)
+            {
+                selectedNPCCard = this;
+                Debug.Log($"NPC auto-selected card with value: {value}");
+
+                if (!selectedNPCCard.IsLocked)
+                {
+                    PerformSwap(selectedPlayerCard, selectedNPCCard);
+                }
+                else
+                {
+                    Debug.Log("NPC card is locked. Swap will not occur.");
+                }
+
+                ResetSelections();
+            }
         }
     }
 
@@ -151,11 +182,25 @@ public class CardValue : MonoBehaviour, IPointerClickHandler
             Debug.Log($"{(Owner == CardOwner.Player ? "Player" : "NPC")} selected card with value: {value}");
         }
     }
-    private void OnMouseDown()
+
+    private void ResetSelections()
     {
-        Debug.Log($"{gameObject.name} clicked!");
+        selectedPlayerCard = null;
+        selectedNPCCard = null;
+        Debug.Log("Selections reset.");
     }
 
+    private void PerformSwap(CardValue playerCard, CardValue npcCard)
+    {
+        Debug.Log($"Swapping cards: Player card {playerCard.value} with NPC card {npcCard.value}");
+
+        // Kart pozisyonlarını değiştir
+        Vector3 tempPosition = playerCard.transform.position;
+        playerCard.transform.position = npcCard.transform.position;
+        npcCard.transform.position = tempPosition;
+
+        Debug.Log("Swap completed.");
+    }
 }
 
 

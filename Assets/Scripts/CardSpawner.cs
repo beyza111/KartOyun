@@ -67,12 +67,15 @@ public class CardSpawner : MonoBehaviour
             cardValue.cardData = cardData;
             cardValue.Owner = cardType == "Player" ? CardValue.CardOwner.Player : CardValue.CardOwner.NPC;
 
+            Debug.Log($"Spawning card for {cardType} at position {position.name}, Card Value: {cardData.cardValue}"); // Eklenen satır
+
             if (cardType == "Player")
                 playerScore += cardValue.value;
             else if (cardType == "NPC")
                 npcScore += cardValue.value;
         }
     }
+
 
     public void ReplaceLowestCard(List<Transform> positions, CardData newCardData, ref int score)
     {

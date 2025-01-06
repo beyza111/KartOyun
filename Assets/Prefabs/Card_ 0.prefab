@@ -12,7 +12,7 @@ GameObject:
   - component: {fileID: 7232771993074818369}
   - component: {fileID: 1630506728815859351}
   - component: {fileID: 5483572522406732371}
-  m_Layer: 0
+  m_Layer: 6
   m_Name: Card_ 0
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -103,5 +103,5 @@ BoxCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Size: {x: 9.999999, y: 0.1313929, z: 10}
-  m_Center: {x: 0, y: 0.025597002, z: 0}
+  m_Size: {x: 9.956513, y: 0.30414963, z: 10}
+  m_Center: {x: 0.02174005, y: 0.11197534, z: 0}
