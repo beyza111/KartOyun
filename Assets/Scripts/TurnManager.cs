@@ -10,8 +10,6 @@ public class TurnManager : MonoBehaviour
     public TurnUIManager uiManager;
     public NPCController npcController;
 
-    
-
     public CardValue PlayerLockedCard { get; private set; }
     public CardValue PlayerSelectedCardForSwap { get; private set; }
 
@@ -245,7 +243,43 @@ public class TurnManager : MonoBehaviour
             card.SetSwapTurnActive(currentTurn == 4);
         }
     }
+
+    public void StartLockSelection()
+    {
+        Debug.Log("Lock selection phase started.");
+        isSwapAndLockTurnActive = true;
+        PlayerLockedCard = null; // Oyuncu henüz kart seçmedi
+        uiManager.ShowNotification("Select a card to lock.");
+    }
+
+    public void StartSwapSelection()
+    {
+        Debug.Log("Swap selection phase started.");
+        isSwapAndLockTurnActive = true;
+        PlayerSelectedCardForSwap = null; // Oyuncu henüz kart seçmedi
+        uiManager.ShowNotification("Select an opponent's card to swap.");
+    }
+
+    public void HandleCardSelection(CardValue selectedCard)
+    {
+        if (isSwapAndLockTurnActive)
+        {
+            if (selectedCard.Owner == CardValue.CardOwner.Player && PlayerLockedCard == null)
+            {
+                LockPlayerCard(selectedCard);
+            }
+            else if (selectedCard.Owner == CardValue.CardOwner.NPC && PlayerSelectedCardForSwap == null)
+            {
+                SelectPlayerCardForSwap(selectedCard);
+            }
+        }
+        else
+        {
+            Debug.LogWarning("Card selection is not allowed outside of Swap & Lock turn.");
+        }
+    }
 }
+
 
 
 

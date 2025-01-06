@@ -67,7 +67,7 @@ public class CardSpawner : MonoBehaviour
             cardValue.cardData = cardData;
             cardValue.Owner = cardType == "Player" ? CardValue.CardOwner.Player : CardValue.CardOwner.NPC;
 
-            Debug.Log($"Spawning card for {cardType} at position {position.name}, Card Value: {cardData.cardValue}"); // Eklenen satır
+            Debug.Log($"Spawning card for {cardType} at position {position.name}, Card Value: {cardData.cardValue}");
 
             if (cardType == "Player")
                 playerScore += cardValue.value;
@@ -75,7 +75,6 @@ public class CardSpawner : MonoBehaviour
                 npcScore += cardValue.value;
         }
     }
-
 
     public void ReplaceLowestCard(List<Transform> positions, CardData newCardData, ref int score)
     {
@@ -124,7 +123,6 @@ public class CardSpawner : MonoBehaviour
             var card = position.GetComponentInChildren<CardValue>();
             if (card != null)
             {
-                // Görünürlüğü kapatmadan kartın arka yüzünü ekle
                 GameObject backCard = Instantiate(card.cardData.backcardPrefab,
                                                   card.transform.position + Vector3.up * 0.2f,
                                                   Quaternion.identity,
@@ -149,7 +147,7 @@ public class CardSpawner : MonoBehaviour
                 topCards.Add(cardValue);
         }
 
-        topCards.Sort((a, b) => b.value.CompareTo(a.value));
+        topCards.Sort((a, b) => b.value.CompareTo(a.value)); // Değerleri azalan sırayla sıralar
         return topCards.GetRange(0, Mathf.Min(count, topCards.Count));
     }
 
@@ -158,6 +156,7 @@ public class CardSpawner : MonoBehaviour
         int tempValue = playerCard.value;
         playerCard.value = npcCard.value;
         npcCard.value = tempValue;
+        Debug.Log($"Swapped Player card ({npcCard.value}) with NPC card ({playerCard.value}).");
     }
 
     public void NPCLockAndSwapSelection()
@@ -200,9 +199,9 @@ public class CardSpawner : MonoBehaviour
             swapDetails += "NPC's selected card was locked. No swap occurred.";
         }
 
+        FindObjectOfType<TurnManager>().UpdateScores(); // Skorları güncelle
         return swapDetails;
     }
-
 
     private CardValue GetRandomTopCard(List<Transform> positions)
     {
@@ -210,6 +209,7 @@ public class CardSpawner : MonoBehaviour
         return topCards[Random.Range(0, topCards.Count)];
     }
 }
+
 
 
 

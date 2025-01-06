@@ -12,13 +12,10 @@ public class CardValue : MonoBehaviour, IPointerClickHandler
     public CardOwner Owner; // Kartın sahibi
 
     private Renderer cardRenderer;
-    private bool isSwapTurnActive = false; // Swap turu aktif mi?
     private bool isSelected = false; // Kart seçili mi?
     private Color originalColor; // Kartın orijinal rengi
     private TurnManager turnManager;
-    private Coroutine lockCoroutine;
-    private static CardValue selectedPlayerCard;
-    private static CardValue selectedNPCCard;
+    private Coroutine hoverCoroutine; // Bekleme kontrolü için coroutine
 
     private void Awake()
     {
@@ -41,140 +38,80 @@ public class CardValue : MonoBehaviour, IPointerClickHandler
 
     public void OnPointerClick(PointerEventData eventData)
     {
-        if (!isSwapTurnActive)
+        if (turnManager.IsSwapAndLockTurn())
         {
-            Debug.LogWarning("Swap turn is not active. Cannot select card.");
-            return;
-        }
-
-        if (IsLocked)
-        {
-            Debug.LogWarning($"Card {value} is locked and cannot be selected.");
-            return;
-        }
-
-        if (Owner == CardOwner.Player && selectedPlayerCard == null)
-        {
-            selectedPlayerCard = this;
-            Debug.Log($"Player selected card with value: {value}");
-            SelectCard(true);
-        }
-        else if (Owner == CardOwner.NPC && selectedPlayerCard != null && selectedNPCCard == null)
-        {
-            selectedNPCCard = this;
-            Debug.Log($"NPC card selected with value: {value}");
-            SelectCard(true);
-
-            if (!selectedNPCCard.IsLocked)
+            if (IsLocked)
             {
-                PerformSwap(selectedPlayerCard, selectedNPCCard);
-            }
-            else
-            {
-                Debug.Log("NPC card is locked. Swap will not occur.");
+                Debug.LogWarning($"Card {value} is locked and cannot be selected.");
+                return;
             }
 
-            // Seçim tamamlandı, seçimleri sıfırla
-            ResetSelections();
+            turnManager.HandleCardSelection(this);
         }
         else
         {
-            Debug.LogWarning("Invalid or duplicate selection detected.");
+            Debug.LogWarning("Swap turn is not active. Cannot select card.");
         }
     }
 
     public void HighlightCard(bool highlight)
     {
-        if (cardRenderer != null && !isSelected)
+        if (Owner == CardOwner.Player && cardRenderer != null && !isSelected)
         {
             cardRenderer.material.color = highlight ? originalColor * 1.5f : originalColor;
-            if (highlight && turnManager.currentTurn == 4)
-            {
-                Debug.Log($"{gameObject.name} highlighting: {highlight} (4th turn)");
-            }
         }
     }
 
     private void OnMouseEnter()
     {
-        if (isSwapTurnActive && !IsLocked)
+        if (turnManager.IsSwapAndLockTurn())
         {
-            HighlightCard(true);
-            if (lockCoroutine == null)
+            if (Owner == CardOwner.Player && !IsLocked)
             {
-                lockCoroutine = StartCoroutine(LockCardAfterDelay());
+                hoverCoroutine = StartCoroutine(LockAfterDelay());
+            }
+            else if (Owner == CardOwner.NPC && !IsLocked)
+            {
+                hoverCoroutine = StartCoroutine(SwapSelectionAfterDelay());
             }
         }
     }
 
     private void OnMouseExit()
     {
-        if (!isSelected)
+        if (hoverCoroutine != null)
         {
-            HighlightCard(false);
+            StopCoroutine(hoverCoroutine);
+            hoverCoroutine = null;
         }
-        if (lockCoroutine != null)
-        {
-            StopCoroutine(lockCoroutine);
-            lockCoroutine = null;
-            Debug.Log($"{gameObject.name}: Lock process canceled.");
-        }
+        HighlightCard(false);
     }
 
-    private IEnumerator LockCardAfterDelay()
+    private IEnumerator LockAfterDelay()
     {
-        Debug.Log($"{gameObject.name}: Locking process started.");
         yield return new WaitForSeconds(3f); // 3 saniye bekle
 
         if (!IsLocked)
         {
-            Debug.Log($"{gameObject.name}: Card locked after 3 seconds.");
-            IsLocked = true;
-            turnManager.LockPlayerCard(this); // Kart kilitlendiğinde PlayerLockedCard set edilir
-
-            if (Owner == CardOwner.Player && selectedPlayerCard == null)
-            {
-                selectedPlayerCard = this;
-                Debug.Log($"Player auto-selected card with value: {value}");
-            }
-            else if (Owner == CardOwner.NPC && selectedNPCCard == null && selectedPlayerCard != null)
-            {
-                selectedNPCCard = this;
-                Debug.Log($"NPC auto-selected card with value: {value}");
-
-                if (!selectedNPCCard.IsLocked)
-                {
-                    PerformSwap(selectedPlayerCard, selectedNPCCard);
-                }
-                else
-                {
-                    Debug.Log("NPC card is locked. Swap will not occur.");
-                }
-
-                ResetSelections();
-            }
+            turnManager.LockPlayerCard(this);
+            Debug.Log($"Card {value} locked after 3 seconds.");
         }
     }
 
-    public void SetSwapTurnActive(bool isActive)
+    private IEnumerator SwapSelectionAfterDelay()
     {
-        isSwapTurnActive = isActive;
-        Debug.Log($"{gameObject.name} Swap Turn Active: {isActive}");
-
-        if (!isActive)
-        {
-            HighlightCard(false);
-            SelectCard(false); // Seçili durumu kaldır
-        }
+        yield return new WaitForSeconds(3f); // 3 saniye bekle
+        turnManager.SelectPlayerCardForSwap(this);
+        Debug.Log($"Player selected NPC card {value} for swap.");
     }
 
     public void SelectCard(bool select)
     {
         isSelected = select;
 
-        if (cardRenderer != null)
+        if (Owner == CardOwner.Player && cardRenderer != null)
         {
-            cardRenderer.material.color = select ? originalColor * 2f : originalColor; // Parlaklık artırılmış efekt
+            cardRenderer.material.color = select ? originalColor * 2f : originalColor;
         }
 
         if (select)
@@ -183,23 +120,12 @@ public class CardValue : MonoBehaviour, IPointerClickHandler
         }
     }
 
-    private void ResetSelections()
+    public void SetSwapTurnActive(bool isActive)
     {
-        selectedPlayerCard = null;
-        selectedNPCCard = null;
-        Debug.Log("Selections reset.");
-    }
-
-    private void PerformSwap(CardValue playerCard, CardValue npcCard)
-    {
-        Debug.Log($"Swapping cards: Player card {playerCard.value} with NPC card {npcCard.value}");
-
-        // Kart pozisyonlarını değiştir
-        Vector3 tempPosition = playerCard.transform.position;
-        playerCard.transform.position = npcCard.transform.position;
-        npcCard.transform.position = tempPosition;
-
-        Debug.Log("Swap completed.");
+        if (cardRenderer != null)
+        {
+            cardRenderer.material.color = isActive ? originalColor * 1.2f : originalColor;
+        }
     }
 }
 

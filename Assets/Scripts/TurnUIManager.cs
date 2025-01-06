@@ -9,8 +9,6 @@ public class TurnUIManager : MonoBehaviour
     public TMP_Text notificationText; // Notification text
 
     private TurnManager turnManager;
-    private bool isSelectingCardToLock = false;
-    private bool isSelectingCardToSwap = false;
 
     void Start()
     {
@@ -21,19 +19,14 @@ public class TurnUIManager : MonoBehaviour
 
     void Update()
     {
-        if (isSelectingCardToLock || isSelectingCardToSwap)
-        {
-            HandleMouseSelection();
-        }
-
         // Draw card with "X" key
-        if (Input.GetKeyDown(KeyCode.X) && !isSelectingCardToLock && !isSelectingCardToSwap)
+        if (Input.GetKeyDown(KeyCode.X))
         {
             OnPlayerDrawButton();
         }
 
         // Pass turn with "Y" key
-        if (Input.GetKeyDown(KeyCode.Y) && !isSelectingCardToLock && !isSelectingCardToSwap)
+        if (Input.GetKeyDown(KeyCode.Y))
         {
             OnPlayerPassButton();
         }
@@ -92,74 +85,16 @@ public class TurnUIManager : MonoBehaviour
     public void StartLockCardSelection()
     {
         ShowNotification("Select a card to lock.");
-        isSelectingCardToLock = true;
+        turnManager.StartLockSelection();
     }
 
     public void StartSwapCardSelection()
     {
         ShowNotification("Select an opponent's card to swap.");
-        isSelectingCardToSwap = true;
-    }
-
-    private void HandleMouseSelection()
-    {
-        if (Input.GetMouseButtonDown(0))
-        {
-            Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
-            if (Physics.Raycast(ray, out RaycastHit hit))
-            {
-                Debug.Log($"Raycast hit: {hit.collider.gameObject.name}");
-
-                CardValue cardValue = hit.collider.GetComponent<CardValue>();
-                if (cardValue != null)
-                {
-                    if (isSelectingCardToLock)
-                    {
-                        LockPlayerCard(cardValue);
-                    }
-                    else if (isSelectingCardToSwap)
-                    {
-                        SwapWithNPC(cardValue);
-                    }
-                    else
-                    {
-                        Debug.LogWarning("No active selection mode for card interaction.");
-                    }
-                }
-                else
-                {
-                    Debug.LogWarning("Raycast hit something that is not a CardValue.");
-                }
-            }
-            else
-            {
-                Debug.Log("Raycast did not hit anything.");
-            }
-        }
-    }
-
-
-    private void LockPlayerCard(CardValue card)
-    {
-        card.IsLocked = true;
-        Debug.Log($"Player locked card with value: {card.value}");
-        ShowNotification($"You locked card with value: {card.value}");
-        isSelectingCardToLock = false;
-
-        // Notify TurnManager that the player has locked their card
-        turnManager.LockPlayerCard(card);
-    }
-
-    private void SwapWithNPC(CardValue npcCard)
-    {
-        Debug.Log($"Player selected NPC card for swapping.");
-        ShowNotification($"You selected NPC card with value: {npcCard.value}");
-        isSelectingCardToSwap = false;
-
-        // Notify TurnManager to process the swap
-        turnManager.SelectPlayerCardForSwap(npcCard);
+        turnManager.StartSwapSelection();
     }
 }
+
 
 
 
