@@ -27,7 +27,7 @@ public class TurnManager : MonoBehaviour
     public void PlayTurn()
     {
         Debug.Log($"Turn {currentTurn} started.");
-        isPlayerActionComplete = false; // Her tur başlangıcında sıfırla (yalnızca swap turunda kullanılacak)
+        isPlayerActionComplete = false; // Her tur başlangıcında sıfırla
         UpdateCardInteractivity();
 
         switch (currentTurn)
@@ -54,9 +54,22 @@ public class TurnManager : MonoBehaviour
         }
     }
 
+    public void StartLockSelection()
+    {
+        Debug.Log("Lock selection phase started.");
+        PlayerLockedCard = null;
+        uiManager.ShowNotification("Select a card to lock.");
+    }
+
+    public void StartSwapSelection()
+    {
+        Debug.Log("Swap selection phase started.");
+        PlayerSelectedCardForSwap = null;
+        uiManager.ShowNotification("Select an opponent's card to swap.");
+    }
+
     public void PlayerTurn(bool isDraw)
     {
-        // Swap ve Lock turunda oyuncu kart seçmeden devam edemez
         if (currentTurn == 4 && !isPlayerActionComplete)
         {
             Debug.LogWarning("Player must complete their action during the Swap & Lock phase.");
@@ -113,13 +126,18 @@ public class TurnManager : MonoBehaviour
         yield return StartCoroutine(WaitForPlayerSwapSelection());
 
         string swapDetails = cardSpawner.EvaluateSwapAndLock(PlayerLockedCard, PlayerSelectedCardForSwap);
-        Debug.Log(swapDetails);
-        uiManager.ShowNotification(swapDetails);
-
-        yield return StartCoroutine(AnimateSwap(PlayerLockedCard.transform, PlayerSelectedCardForSwap.transform));
+        if (!swapDetails.Contains("swapped"))
+        {
+            Debug.Log("Swap gerçekleşmedi, kartlar korundu.");
+            uiManager.ShowNotification("Swap failed. Cards remained locked.");
+        }
+        else
+        {
+            Debug.Log(swapDetails);
+            uiManager.ShowNotification(swapDetails);
+        }
 
         isSwapAndLockTurnActive = false;
-
         Debug.Log("Swap and Lock Phase Completed.");
         currentTurn++;
         PlayTurn();
@@ -135,7 +153,7 @@ public class TurnManager : MonoBehaviour
         }
 
         Debug.Log($"Player locked the card with value: {PlayerLockedCard.value}");
-        isPlayerActionComplete = true; // Oyuncu aksiyonunu tamamladı
+        isPlayerActionComplete = true;
     }
 
     private IEnumerator WaitForPlayerSwapSelection()
@@ -148,30 +166,6 @@ public class TurnManager : MonoBehaviour
         }
 
         Debug.Log($"Player selected NPC's card with value: {PlayerSelectedCardForSwap.value} for swap.");
-    }
-
-    private IEnumerator AnimateSwap(Transform playerCard, Transform npcCard)
-    {
-        float duration = 1.5f;
-        Vector3 playerStartPos = playerCard.position;
-        Vector3 npcStartPos = npcCard.position;
-
-        float elapsed = 0f;
-        while (elapsed < duration)
-        {
-            elapsed += Time.deltaTime;
-            float t = elapsed / duration;
-
-            playerCard.position = Vector3.Lerp(playerStartPos, npcStartPos, t);
-            npcCard.position = Vector3.Lerp(npcStartPos, playerStartPos, t);
-
-            yield return null;
-        }
-
-        playerCard.position = npcStartPos;
-        npcCard.position = playerStartPos;
-
-        Debug.Log("Swap animation completed.");
     }
 
     private void HandleDrawWithHint()
@@ -217,17 +211,31 @@ public class TurnManager : MonoBehaviour
 
     public void LockPlayerCard(CardValue card)
     {
-        PlayerLockedCard = card;
-        Debug.Log($"Player locked card: {card.value}");
-        card.SelectCard(true);
-        isPlayerActionComplete = true; // Oyuncu aksiyonunu tamamladı
+        if (PlayerLockedCard == null)
+        {
+            PlayerLockedCard = card;
+            Debug.Log($"Player locked card: {card.value}");
+            card.SelectCard(true);
+            isPlayerActionComplete = true;
+        }
+        else
+        {
+            Debug.LogWarning("Player has already locked a card.");
+        }
     }
 
     public void SelectPlayerCardForSwap(CardValue card)
     {
-        PlayerSelectedCardForSwap = card;
-        Debug.Log($"Player selected card for swap: {card.value}");
-        card.SelectCard(true);
+        if (PlayerSelectedCardForSwap == null)
+        {
+            PlayerSelectedCardForSwap = card;
+            Debug.Log($"Player selected card for swap: {card.value}");
+            card.SelectCard(true);
+        }
+        else
+        {
+            Debug.LogWarning("Player has already selected a card for swap.");
+        }
     }
 
     public void UpdateScores()
@@ -243,46 +251,7 @@ public class TurnManager : MonoBehaviour
             card.SetSwapTurnActive(currentTurn == 4);
         }
     }
-
-    public void StartLockSelection()
-    {
-        Debug.Log("Lock selection phase started.");
-        isSwapAndLockTurnActive = true;
-        PlayerLockedCard = null; // Oyuncu henüz kart seçmedi
-        uiManager.ShowNotification("Select a card to lock.");
-    }
-
-    public void StartSwapSelection()
-    {
-        Debug.Log("Swap selection phase started.");
-        isSwapAndLockTurnActive = true;
-        PlayerSelectedCardForSwap = null; // Oyuncu henüz kart seçmedi
-        uiManager.ShowNotification("Select an opponent's card to swap.");
-    }
-
-    public void HandleCardSelection(CardValue selectedCard)
-    {
-        if (isSwapAndLockTurnActive)
-        {
-            if (selectedCard.Owner == CardValue.CardOwner.Player && PlayerLockedCard == null)
-            {
-                LockPlayerCard(selectedCard);
-            }
-            else if (selectedCard.Owner == CardValue.CardOwner.NPC && PlayerSelectedCardForSwap == null)
-            {
-                SelectPlayerCardForSwap(selectedCard);
-            }
-        }
-        else
-        {
-            Debug.LogWarning("Card selection is not allowed outside of Swap & Lock turn.");
-        }
-    }
 }
-
-
-
-
 
 
 

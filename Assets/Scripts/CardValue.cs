@@ -17,6 +17,9 @@ public class CardValue : MonoBehaviour, IPointerClickHandler
     private TurnManager turnManager;
     private Coroutine hoverCoroutine; // Bekleme kontrolü için coroutine
 
+    private static bool playerCardLocked = false; // Oyuncu kartını kilitledi mi?
+    private static bool npcCardSelected = false; // NPC kartı seçildi mi?
+
     private void Awake()
     {
         cardRenderer = GetComponent<Renderer>();
@@ -46,7 +49,20 @@ public class CardValue : MonoBehaviour, IPointerClickHandler
                 return;
             }
 
-            turnManager.HandleCardSelection(this);
+            if (Owner == CardOwner.Player && !playerCardLocked)
+            {
+                turnManager.LockPlayerCard(this);
+                playerCardLocked = true;
+            }
+            else if (Owner == CardOwner.NPC && !npcCardSelected)
+            {
+                turnManager.SelectPlayerCardForSwap(this);
+                npcCardSelected = true;
+            }
+            else
+            {
+                Debug.LogWarning("You cannot select another card during this turn.");
+            }
         }
         else
         {
@@ -56,7 +72,7 @@ public class CardValue : MonoBehaviour, IPointerClickHandler
 
     public void HighlightCard(bool highlight)
     {
-        if (Owner == CardOwner.Player && cardRenderer != null && !isSelected)
+        if (cardRenderer != null && !isSelected)
         {
             cardRenderer.material.color = highlight ? originalColor * 1.5f : originalColor;
         }
@@ -66,11 +82,13 @@ public class CardValue : MonoBehaviour, IPointerClickHandler
     {
         if (turnManager.IsSwapAndLockTurn())
         {
-            if (Owner == CardOwner.Player && !IsLocked)
+            HighlightCard(true); // İmleç üzerindeyken anlık parlama
+
+            if (Owner == CardOwner.Player && !IsLocked && !playerCardLocked)
             {
                 hoverCoroutine = StartCoroutine(LockAfterDelay());
             }
-            else if (Owner == CardOwner.NPC && !IsLocked)
+            else if (Owner == CardOwner.NPC && !IsLocked && !npcCardSelected)
             {
                 hoverCoroutine = StartCoroutine(SwapSelectionAfterDelay());
             }
@@ -84,16 +102,22 @@ public class CardValue : MonoBehaviour, IPointerClickHandler
             StopCoroutine(hoverCoroutine);
             hoverCoroutine = null;
         }
-        HighlightCard(false);
+        if (!isSelected) // Seçili değilse parlama kalkar
+        {
+            HighlightCard(false);
+        }
     }
 
     private IEnumerator LockAfterDelay()
     {
         yield return new WaitForSeconds(3f); // 3 saniye bekle
 
-        if (!IsLocked)
+        if (!IsLocked && !playerCardLocked)
         {
             turnManager.LockPlayerCard(this);
+            playerCardLocked = true;
+            isSelected = true; // Kart seçili hale gelir
+            HighlightCard(true); // Parlaklık sabitlenir
             Debug.Log($"Card {value} locked after 3 seconds.");
         }
     }
@@ -101,15 +125,22 @@ public class CardValue : MonoBehaviour, IPointerClickHandler
     private IEnumerator SwapSelectionAfterDelay()
     {
         yield return new WaitForSeconds(3f); // 3 saniye bekle
-        turnManager.SelectPlayerCardForSwap(this);
-        Debug.Log($"Player selected NPC card {value} for swap.");
+
+        if (!npcCardSelected)
+        {
+            turnManager.SelectPlayerCardForSwap(this);
+            npcCardSelected = true;
+            isSelected = true; // Kart seçili hale gelir
+            HighlightCard(true); // Parlaklık sabitlenir
+            Debug.Log($"Player selected NPC card {value} for swap.");
+        }
     }
 
     public void SelectCard(bool select)
     {
         isSelected = select;
 
-        if (Owner == CardOwner.Player && cardRenderer != null)
+        if (cardRenderer != null)
         {
             cardRenderer.material.color = select ? originalColor * 2f : originalColor;
         }
@@ -127,7 +158,14 @@ public class CardValue : MonoBehaviour, IPointerClickHandler
             cardRenderer.material.color = isActive ? originalColor * 1.2f : originalColor;
         }
     }
+
+    public static void ResetTurnSelections()
+    {
+        playerCardLocked = false;
+        npcCardSelected = false;
+    }
 }
+
 
 
 

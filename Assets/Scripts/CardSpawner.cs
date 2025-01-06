@@ -109,56 +109,6 @@ public class CardSpawner : MonoBehaviour
         }
     }
 
-    public void StartFlipBackProcess()
-    {
-        StartCoroutine(FlipCardsToBackAfterDelay());
-    }
-
-    private IEnumerator FlipCardsToBackAfterDelay()
-    {
-        yield return new WaitForSeconds(5f);
-
-        foreach (Transform position in CurrentNPCPositions)
-        {
-            var card = position.GetComponentInChildren<CardValue>();
-            if (card != null)
-            {
-                GameObject backCard = Instantiate(card.cardData.backcardPrefab,
-                                                  card.transform.position + Vector3.up * 0.2f,
-                                                  Quaternion.identity,
-                                                  card.transform.parent);
-
-                backCard.name = $"BackCard_{position.name}";
-                backCard.SetActive(true);
-
-                Debug.Log($"Card at {position.name} flipped to back.");
-            }
-        }
-    }
-
-    public List<CardValue> GetTopCards(List<Transform> positions, int count)
-    {
-        List<CardValue> topCards = new List<CardValue>();
-
-        foreach (var position in positions)
-        {
-            var cardValue = position.GetComponentInChildren<CardValue>();
-            if (cardValue != null)
-                topCards.Add(cardValue);
-        }
-
-        topCards.Sort((a, b) => b.value.CompareTo(a.value)); // Değerleri azalan sırayla sıralar
-        return topCards.GetRange(0, Mathf.Min(count, topCards.Count));
-    }
-
-    public void SwapCards(CardValue playerCard, CardValue npcCard)
-    {
-        int tempValue = playerCard.value;
-        playerCard.value = npcCard.value;
-        npcCard.value = tempValue;
-        Debug.Log($"Swapped Player card ({npcCard.value}) with NPC card ({playerCard.value}).");
-    }
-
     public void NPCLockAndSwapSelection()
     {
         Debug.Log("NPC Lock and Swap Selection Phase");
@@ -173,15 +123,37 @@ public class CardSpawner : MonoBehaviour
         Debug.Log($"NPC selected Player card for swap: {SelectedNPCSwapCard.value}");
     }
 
+    public List<CardValue> GetTopCards(List<Transform> positions, int count)
+    {
+        List<CardValue> topCards = new List<CardValue>();
+
+        foreach (var position in positions)
+        {
+            var cardValue = position.GetComponentInChildren<CardValue>();
+            if (cardValue != null)
+                topCards.Add(cardValue);
+        }
+
+        topCards.Sort((a, b) => b.value.CompareTo(a.value));
+        return topCards.GetRange(0, Mathf.Min(count, topCards.Count));
+    }
+
     public string EvaluateSwapAndLock(CardValue playerLockedCard, CardValue playerSelectedSwapCard)
     {
         string swapDetails = "";
 
         if (playerSelectedSwapCard != null && !playerSelectedSwapCard.IsLocked)
         {
-            var npcSwapCard = GetRandomTopCard(CurrentNPCPositions);
-            SwapCards(playerSelectedSwapCard, npcSwapCard);
-            swapDetails += $"Player's card ({playerSelectedSwapCard.value}) swapped with NPC's card ({npcSwapCard.value}). ";
+            var npcLowestCard = GetLowestCard(CurrentNPCPositions);
+            if (npcLowestCard != null)
+            {
+                SwapCards(playerSelectedSwapCard, npcLowestCard);
+                swapDetails += $"Player's card ({playerSelectedSwapCard.value}) swapped with NPC's card ({npcLowestCard.value}). ";
+            }
+            else
+            {
+                swapDetails += "Player swap failed: No valid NPC card found. ";
+            }
         }
         else
         {
@@ -190,25 +162,86 @@ public class CardSpawner : MonoBehaviour
 
         if (SelectedNPCSwapCard != null && !SelectedNPCSwapCard.IsLocked)
         {
-            var playerSwapCard = GetRandomTopCard(CurrentPlayerPositions);
-            SwapCards(SelectedNPCSwapCard, playerSwapCard);
-            swapDetails += $"NPC's card ({SelectedNPCSwapCard.value}) swapped with Player's card ({playerSwapCard.value}). ";
+            var playerLowestCard = GetLowestCard(CurrentPlayerPositions);
+            if (playerLowestCard != null)
+            {
+                SwapCards(SelectedNPCSwapCard, playerLowestCard);
+                swapDetails += $"NPC's card ({SelectedNPCSwapCard.value}) swapped with Player's card ({playerLowestCard.value}). ";
+            }
+            else
+            {
+                swapDetails += "NPC swap failed: No valid Player card found. ";
+            }
         }
         else
         {
             swapDetails += "NPC's selected card was locked. No swap occurred.";
         }
 
-        FindObjectOfType<TurnManager>().UpdateScores(); // Skorları güncelle
         return swapDetails;
     }
 
-    private CardValue GetRandomTopCard(List<Transform> positions)
+    public CardValue GetLowestCard(List<Transform> positions)
     {
-        var topCards = GetTopCards(positions, 3);
-        return topCards[Random.Range(0, topCards.Count)];
+        CardValue lowestCard = null;
+        int lowestValue = int.MaxValue;
+
+        foreach (Transform position in positions)
+        {
+            var cardValue = position.GetComponentInChildren<CardValue>();
+            if (cardValue != null && cardValue.value < lowestValue && !cardValue.IsLocked)
+            {
+                lowestValue = cardValue.value;
+                lowestCard = cardValue;
+            }
+        }
+
+        return lowestCard;
+    }
+
+    public void SwapCards(CardValue playerCard, CardValue npcCard)
+    {
+        if (playerCard.Owner == CardValue.CardOwner.Player && npcCard.Owner == CardValue.CardOwner.NPC)
+        {
+            StartCoroutine(SwapCardsWithAnimation(playerCard, npcCard));
+        }
+        else
+        {
+            Debug.LogWarning($"Invalid swap attempt between {playerCard.Owner}'s card and {npcCard.Owner}'s card.");
+        }
+    }
+
+    private IEnumerator SwapCardsWithAnimation(CardValue playerCard, CardValue npcCard)
+    {
+        Transform playerTransform = playerCard.transform;
+        Transform npcTransform = npcCard.transform;
+
+        Vector3 playerStartPos = playerTransform.position;
+        Vector3 npcStartPos = npcTransform.position;
+
+        float duration = 1.5f;
+        float elapsed = 0f;
+
+        while (elapsed < duration)
+        {
+            elapsed += Time.deltaTime;
+            float t = elapsed / duration;
+
+            playerTransform.position = Vector3.Lerp(playerStartPos, npcStartPos, t);
+            npcTransform.position = Vector3.Lerp(npcStartPos, playerStartPos, t);
+
+            yield return null;
+        }
+
+        playerTransform.position = npcStartPos;
+        npcTransform.position = playerStartPos;
+
+        Debug.Log($"Swapped Player card ({playerCard.value}) with NPC card ({npcCard.value}). Animation completed.");
     }
 }
+
+
+
 
 
 
