@@ -125,6 +125,17 @@ public class TurnManager : MonoBehaviour
         uiManager.ShowNotification("Select one of NPC's cards to swap.");
         yield return StartCoroutine(WaitForPlayerSwapSelection());
 
+        // Kartların pozisyonlarını doğrula
+        if (!cardSpawner.CurrentPlayerPositions.Contains(PlayerLockedCard.transform.parent) ||
+            !cardSpawner.CurrentNPCPositions.Contains(PlayerSelectedCardForSwap.transform.parent))
+        {
+            Debug.LogError("Invalid card positions during Swap and Lock.");
+            uiManager.ShowNotification("Invalid card positions. Swap failed.");
+            currentTurn++;
+            PlayTurn();
+            yield break;
+        }
+
         string swapDetails = cardSpawner.EvaluateSwapAndLock(PlayerLockedCard, PlayerSelectedCardForSwap);
         if (!swapDetails.Contains("swapped"))
         {
@@ -252,7 +263,6 @@ public class TurnManager : MonoBehaviour
         }
     }
 }
-
 
 
 

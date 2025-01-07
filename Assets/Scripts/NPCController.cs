@@ -42,6 +42,16 @@ public class NPCController : MonoBehaviour
         var playerTopCards = cardSpawner.GetTopCards(cardSpawner.CurrentPlayerPositions, 3);
         var chosenCard = playerTopCards[UnityEngine.Random.Range(0, playerTopCards.Count)];
 
+        // Kartların pozisyonlarını kontrol et
+        if (!cardSpawner.CurrentPlayerPositions.Contains(chosenCard.transform.parent) ||
+            !cardSpawner.CurrentNPCPositions.Contains(lockedCard.transform.parent))
+        {
+            Debug.LogError("Invalid card positions during swap.");
+            uiManager.ShowNotification("Swap failed due to invalid card positions.");
+            onTurnComplete?.Invoke();
+            return;
+        }
+
         // Takas işlemi
         if (!chosenCard.IsLocked)
         {
@@ -113,9 +123,3 @@ public class NPCController : MonoBehaviour
         Debug.Log($"[NPCController] Updated NPC Score: {cardSpawner.npcScore}");
     }
 }
-
-
-
-
-
-

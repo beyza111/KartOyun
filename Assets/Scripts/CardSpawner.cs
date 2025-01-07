@@ -47,8 +47,6 @@ public class CardSpawner : MonoBehaviour
 
     private void SpawnCards(List<Transform> positions, string cardType)
     {
-        Debug.Log($"Spawning cards for: {cardType}");
-
         for (int i = 0; i < positions.Count; i++)
         {
             CardData cardData = deckManager.DrawCard();
@@ -65,13 +63,12 @@ public class CardSpawner : MonoBehaviour
             CardValue cardValue = card.AddComponent<CardValue>();
             cardValue.value = cardData.cardValue;
             cardValue.cardData = cardData;
-            cardValue.Owner = cardType == "Player" ? CardValue.CardOwner.Player : CardValue.CardOwner.NPC;
 
-            Debug.Log($"Spawning card for {cardType} at position {position.name}, Card Value: {cardData.cardValue}");
+            Debug.Log($"Spawned {cardType} card at {position.name}, Value: {cardValue.value}");
 
             if (cardType == "Player")
                 playerScore += cardValue.value;
-            else if (cardType == "NPC")
+            else
                 npcScore += cardValue.value;
         }
     }
@@ -106,6 +103,12 @@ public class CardSpawner : MonoBehaviour
 
             score -= lowestCardValue.value;
             score += newCardValue.value;
+
+            Debug.Log($"Replaced lowest card with value {lowestCardValue.value} by new card with value {newCardValue.value}.");
+        }
+        else
+        {
+            Debug.LogWarning("No valid card found to replace.");
         }
     }
 
@@ -142,44 +145,52 @@ public class CardSpawner : MonoBehaviour
     {
         string swapDetails = "";
 
-        if (playerSelectedSwapCard != null && !playerSelectedSwapCard.IsLocked)
+        var npcLowestCard = GetLowestCard(CurrentNPCPositions);
+        var playerLowestCard = GetLowestCard(CurrentPlayerPositions);
+
+
+        if (playerSelectedSwapCard != null && !playerSelectedSwapCard.IsLocked && npcLowestCard != null)
         {
-            var npcLowestCard = GetLowestCard(CurrentNPCPositions);
-            if (npcLowestCard != null)
-            {
-                SwapCards(playerSelectedSwapCard, npcLowestCard);
-                swapDetails += $"Player's card ({playerSelectedSwapCard.value}) swapped with NPC's card ({npcLowestCard.value}). ";
-            }
-            else
-            {
-                swapDetails += "Player swap failed: No valid NPC card found. ";
-            }
+            Debug.Log($"Attempting swap: NPC's card selected by player ({playerSelectedSwapCard.value}) with Player's card ({playerLowestCard.value})");
+            //CurrentPlayerPositions.Contains(playerSelectedSwapCard.transform.parent) &&
+            //CurrentNPCPositions.Contains(npcLowestCard.transform.parent)
+
+
+            SwapCards(playerSelectedSwapCard, playerLowestCard);
+            swapDetails += $"Player's card ({playerSelectedSwapCard.value}) swapped with NPC's card ({playerLowestCard.value}). ";
+
+
         }
         else
         {
-            swapDetails += "Player's selected card was locked. No swap occurred. ";
+            swapDetails += "Player's swap failed or locked card selected. ";
         }
 
-        if (SelectedNPCSwapCard != null && !SelectedNPCSwapCard.IsLocked)
+        if (SelectedNPCSwapCard != null && !SelectedNPCSwapCard.IsLocked && playerLowestCard != null)
         {
-            var playerLowestCard = GetLowestCard(CurrentPlayerPositions);
-            if (playerLowestCard != null)
-            {
-                SwapCards(SelectedNPCSwapCard, playerLowestCard);
-                swapDetails += $"NPC's card ({SelectedNPCSwapCard.value}) swapped with Player's card ({playerLowestCard.value}). ";
-            }
-            else
-            {
-                swapDetails += "NPC swap failed: No valid Player card found. ";
-            }
+            Debug.Log($"\"Attempting swap: Player's card selected by NPC ({SelectedNPCSwapCard.value}) with NPC's card ({npcLowestCard.value})");
+
+
+            SwapCards(SelectedNPCSwapCard, npcLowestCard);
+            swapDetails += $"NPC's card ({SelectedNPCSwapCard.value}) swapped with Player's card ({npcLowestCard.value}). ";
+
         }
         else
         {
-            swapDetails += "NPC's selected card was locked. No swap occurred.";
+            swapDetails += "NPC's swap failed or locked card selected. ";
         }
 
         return swapDetails;
     }
+
+    public void SwapCards(CardValue playerCard, CardValue npcCard)
+    {
+
+            Debug.Log($"Swapping Player's card ({playerCard.value}) with NPC's card ({npcCard.value}).");
+            StartCoroutine(SwapCardsWithAnimation(playerCard, npcCard));
+
+    }
+
 
     public CardValue GetLowestCard(List<Transform> positions)
     {
@@ -199,17 +210,7 @@ public class CardSpawner : MonoBehaviour
         return lowestCard;
     }
 
-    public void SwapCards(CardValue playerCard, CardValue npcCard)
-    {
-        if (playerCard.Owner == CardValue.CardOwner.Player && npcCard.Owner == CardValue.CardOwner.NPC)
-        {
-            StartCoroutine(SwapCardsWithAnimation(playerCard, npcCard));
-        }
-        else
-        {
-            Debug.LogWarning($"Invalid swap attempt between {playerCard.Owner}'s card and {npcCard.Owner}'s card.");
-        }
-    }
+
 
     private IEnumerator SwapCardsWithAnimation(CardValue playerCard, CardValue npcCard)
     {
@@ -236,17 +237,7 @@ public class CardSpawner : MonoBehaviour
         playerTransform.position = npcStartPos;
         npcTransform.position = playerStartPos;
 
+        
         Debug.Log($"Swapped Player card ({playerCard.value}) with NPC card ({npcCard.value}). Animation completed.");
     }
 }
-
-
-
-
-
-
-
-
-
-
-
