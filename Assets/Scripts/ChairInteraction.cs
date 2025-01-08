@@ -5,16 +5,25 @@ public class ChairInteraction : MonoBehaviour
     public Transform sitPoint;
     public TurnManager turnManager;
     public TurnUIManager uiManager;
+    public Transform leaveSpawnPoint; // Sandalyeden ayrılınca spawn olunacak nokta
 
     private bool isPlayerNear = false;
     private Transform playerTransform;
     private bool welcomeMessageShown = false;
+    private bool isSitting = false;
 
     void Update()
     {
         if (Input.GetKeyDown(KeyCode.E) && isPlayerNear)
         {
-            Sit();
+            if (isSitting)
+            {
+                Leave();
+            }
+            else
+            {
+                Sit();
+            }
         }
     }
 
@@ -30,6 +39,7 @@ public class ChairInteraction : MonoBehaviour
         playerTransform.rotation = sitPoint.rotation;
 
         playerTransform.GetComponent<PlayerController>().enabled = false;
+        isSitting = true;
 
         if (!welcomeMessageShown)
         {
@@ -38,6 +48,23 @@ public class ChairInteraction : MonoBehaviour
         }
 
         turnManager.StartGame();
+    }
+
+    void Leave()
+    {
+        if (playerTransform == null || leaveSpawnPoint == null)
+        {
+            Debug.LogError("Player or LeaveSpawnPoint is not assigned!");
+            return;
+        }
+
+        playerTransform.position = leaveSpawnPoint.position;
+        playerTransform.rotation = leaveSpawnPoint.rotation;
+
+        playerTransform.GetComponent<PlayerController>().enabled = true;
+        isSitting = false;
+
+        uiManager.ShowNotification("Oyundan ayrıldınız. Yeni bir seviyeye geçmek için tekrar E'ye basın.");
     }
 
     void OnTriggerEnter(Collider other)
@@ -58,6 +85,4 @@ public class ChairInteraction : MonoBehaviour
         }
     }
 }
-
-
 

@@ -7,6 +7,13 @@ public class CardSpawner : MonoBehaviour
     public DeckManager deckManager;
     public List<Transform> playerCardPositionsLevel1;
     public List<Transform> npcCardPositionsLevel1;
+    public List<Transform> playerCardPositionsLevel2;
+    public List<Transform> npcCardPositionsLevel2;
+    public List<Transform> playerCardPositionsLevel3;
+    public List<Transform> npcCardPositionsLevel3;
+
+    [SerializeField] public int CurrentLevel = 1; // Varsayılan olarak Level 1
+
 
     public List<Transform> CurrentPlayerPositions { get; private set; }
     public List<Transform> CurrentNPCPositions { get; private set; }
@@ -22,11 +29,23 @@ public class CardSpawner : MonoBehaviour
     {
         Debug.Log("Starting level: " + level);
 
+        CurrentLevel = level;
+        deckManager.ResetDeckForNewLevel();
+
+
         switch (level)
         {
             case 1:
                 CurrentPlayerPositions = playerCardPositionsLevel1;
                 CurrentNPCPositions = npcCardPositionsLevel1;
+                break;
+            case 2:
+                CurrentPlayerPositions = playerCardPositionsLevel2;
+                CurrentNPCPositions = npcCardPositionsLevel2;
+                break;
+            case 3:
+                CurrentPlayerPositions = playerCardPositionsLevel3;
+                CurrentNPCPositions = npcCardPositionsLevel3;
                 break;
             default:
                 Debug.LogError("Invalid level!");
@@ -152,8 +171,6 @@ public class CardSpawner : MonoBehaviour
         if (playerSelectedSwapCard != null && !playerSelectedSwapCard.IsLocked && npcLowestCard != null)
         {
             Debug.Log($"Attempting swap: NPC's card selected by player ({playerSelectedSwapCard.value}) with Player's card ({playerLowestCard.value})");
-            //CurrentPlayerPositions.Contains(playerSelectedSwapCard.transform.parent) &&
-            //CurrentNPCPositions.Contains(npcLowestCard.transform.parent)
 
 
             SwapCards(playerSelectedSwapCard, playerLowestCard);
@@ -186,8 +203,8 @@ public class CardSpawner : MonoBehaviour
     public void SwapCards(CardValue playerCard, CardValue npcCard)
     {
 
-            Debug.Log($"Swapping Player's card ({playerCard.value}) with NPC's card ({npcCard.value}).");
-            StartCoroutine(SwapCardsWithAnimation(playerCard, npcCard));
+        Debug.Log($"Swapping Player's card ({playerCard.value}) with NPC's card ({npcCard.value}).");
+        StartCoroutine(SwapCardsWithAnimation(playerCard, npcCard));
 
     }
 
@@ -237,7 +254,17 @@ public class CardSpawner : MonoBehaviour
         playerTransform.position = npcStartPos;
         npcTransform.position = playerStartPos;
 
-        
+
         Debug.Log($"Swapped Player card ({playerCard.value}) with NPC card ({npcCard.value}). Animation completed.");
     }
+
+
+    [ContextMenu("Test Level")]
+    public void TestLevel()
+    {
+        StartLevel(CurrentLevel);
+    }
+
+
+
 }

@@ -43,11 +43,17 @@ public class DeckManager : MonoBehaviour
         {
             CardData card = deck[0];
             deck.RemoveAt(0);
-            return card; // Log'u kaldırdık.
+            return card;
         }
         Debug.LogError("Deck is empty!");
         return null;
     }
-}
 
+    public void ResetDeckForNewLevel()
+    {
+        Debug.Log("Resetting deck for new level...");
+        CreateDeck();
+        ShuffleDeck();
+    }
+}
 

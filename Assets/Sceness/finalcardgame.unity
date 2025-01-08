@@ -1190,6 +1190,37 @@ MonoBehaviour:
   - {fileID: 718870791}
   - {fileID: 627580037}
   - {fileID: 851748521}
+  playerCardPositionsLevel2:
+  - {fileID: 1277898744}
+  - {fileID: 2145813944}
+  - {fileID: 1640723168}
+  - {fileID: 81345428}
+  - {fileID: 476439400}
+  - {fileID: 641138842}
+  npcCardPositionsLevel2:
+  - {fileID: 1723889386}
+  - {fileID: 1519933336}
+  - {fileID: 391489448}
+  - {fileID: 51930598}
+  - {fileID: 114775652}
+  - {fileID: 1141973561}
+  playerCardPositionsLevel3:
+  - {fileID: 457425206}
+  - {fileID: 1233219746}
+  - {fileID: 1344326895}
+  - {fileID: 844592053}
+  - {fileID: 1951717533}
+  - {fileID: 1275770454}
+  - {fileID: 1693506733}
+  npcCardPositionsLevel3:
+  - {fileID: 2101829715}
+  - {fileID: 2124990922}
+  - {fileID: 699415620}
+  - {fileID: 520144332}
+  - {fileID: 1085831829}
+  - {fileID: 1324558212}
+  - {fileID: 543345797}
+  CurrentLevel: 1
   playerScore: 0
   npcScore: 0
 --- !u!4 &573360465
@@ -1396,6 +1427,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 3139eb97dc8b41944923fb65ad52c61e, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  playerScore: 0
+  npcScore: 0
 --- !u!4 &748521582
 Transform:
   m_ObjectHideFlags: 0

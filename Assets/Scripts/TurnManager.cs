@@ -1,5 +1,6 @@
 ﻿using System.Collections;
 using UnityEngine;
+using System;
 
 public class TurnManager : MonoBehaviour
 {
@@ -9,6 +10,8 @@ public class TurnManager : MonoBehaviour
     public CardSpawner cardSpawner;
     public TurnUIManager uiManager;
     public NPCController npcController;
+
+    public event Action OnLevelCompleted; // Level tamamlandığında tetiklenecek event
 
     public CardValue PlayerLockedCard { get; private set; }
     public CardValue PlayerSelectedCardForSwap { get; private set; }
@@ -30,6 +33,14 @@ public class TurnManager : MonoBehaviour
         isPlayerActionComplete = false; // Her tur başlangıcında sıfırla
         UpdateCardInteractivity();
 
+        int maxTurns = GetTurnsForCurrentLevel();
+
+        if (currentTurn > maxTurns)
+        {
+            EndLevel();
+            return;
+        }
+
         switch (currentTurn)
         {
             case 1:
@@ -48,11 +59,37 @@ public class TurnManager : MonoBehaviour
             case 7:
                 HandleFinalTurn();
                 break;
+            case 8: // 2. Level'da ekstra tur
+                if (cardSpawner.CurrentLevel == 2) // Sadece 2. Level için 8. tur oynansın
+                {
+                    HandleDrawOrPass();
+                }
+                else
+                {
+                    Debug.LogWarning("8. tur sadece Level 2 için geçerlidir!");
+                    EndLevel();
+                }
+                break;
             default:
                 EndLevel();
                 break;
         }
     }
+
+    private int GetTurnsForCurrentLevel()
+    {
+        switch (cardSpawner.CurrentLevel)
+        {
+            case 1: return 7; // 1. Level için 7 tur
+            case 2: return 8; // 2. Level için 8 tur
+            case 3: return 7; // 3. Level için 7 tur
+            default:
+                Debug.LogError("Invalid level!");
+                return 7; // Varsayılan olarak 7 tur
+        }
+    }
+
+
 
     public void StartLockSelection()
     {
@@ -125,7 +162,6 @@ public class TurnManager : MonoBehaviour
         uiManager.ShowNotification("Select one of NPC's cards to swap.");
         yield return StartCoroutine(WaitForPlayerSwapSelection());
 
-        // Kartların pozisyonlarını doğrula
         if (!cardSpawner.CurrentPlayerPositions.Contains(PlayerLockedCard.transform.parent) ||
             !cardSpawner.CurrentNPCPositions.Contains(PlayerSelectedCardForSwap.transform.parent))
         {
@@ -206,6 +242,8 @@ public class TurnManager : MonoBehaviour
     {
         Debug.Log("Level Complete!");
         uiManager.ShowNotification("Level Complete!");
+
+        OnLevelCompleted?.Invoke(); // Level tamamlandığını bildirin
     }
 
     private void PlayNPCTurn()
@@ -263,7 +301,3 @@ public class TurnManager : MonoBehaviour
         }
     }
 }
-
-
-
-
