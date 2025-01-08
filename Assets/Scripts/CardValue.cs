@@ -142,6 +142,12 @@ public class CardValue : MonoBehaviour, IPointerClickHandler
     {
         return turnManager.cardSpawner.CurrentNPCPositions.Contains(transform.parent);
     }
+
+    public void SetInteractivity(bool isInteractive)
+    {
+        GetComponent<Collider>().enabled = isInteractive;
+        Debug.Log($"Card {name} interactivity set to {isInteractive}");
+    }
 }
 
 

@@ -641,6 +641,7 @@ Transform:
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 232330461}
+  - {fileID: 567130731}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &368977475
@@ -658,6 +659,7 @@ MonoBehaviour:
   sitPoint: {fileID: 232330461}
   turnManager: {fileID: 1842200661}
   uiManager: {fileID: 1504320605}
+  leaveSpawnPoint: {fileID: 567130731}
 --- !u!1 &391489447
 GameObject:
   m_ObjectHideFlags: 0
@@ -1147,6 +1149,37 @@ Transform:
   - {fileID: 725851411}
   - {fileID: 1056550136}
   m_Father: {fileID: 1425751297}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &567130730
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 567130731}
+  m_Layer: 0
+  m_Name: leaveP
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &567130731
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 567130730}
+  serializedVersion: 2
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalPosition: {x: -2.662, y: 0.559, z: 0.36300004}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 368977474}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &573360463
 GameObject:
@@ -3507,6 +3540,7 @@ MonoBehaviour:
   cardSpawner: {fileID: 573360464}
   uiManager: {fileID: 1504320605}
   npcController: {fileID: 1852908305}
+  isLevelComplete: 0
 --- !u!4 &1842200662
 Transform:
   m_ObjectHideFlags: 0
@@ -3602,6 +3636,7 @@ MonoBehaviour:
       type: 3}
     backcardPrefab: {fileID: 2252970879041521435, guid: 59ecebc04495ee84ca3dcf47a1d01a50,
       type: 3}
+  cardsPerLevel: 3
 --- !u!4 &1849621190
 Transform:
   m_ObjectHideFlags: 0

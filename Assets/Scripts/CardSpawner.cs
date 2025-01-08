@@ -28,41 +28,36 @@ public class CardSpawner : MonoBehaviour
     public void StartLevel(int level = 1)
     {
         Debug.Log("Starting level: " + level);
-
         CurrentLevel = level;
         deckManager.ResetDeckForNewLevel();
 
-
-        switch (level)
+        // Yeni levelde kart çekmeye devam edilebilir
+        if (level == 1)
         {
-            case 1:
-                CurrentPlayerPositions = playerCardPositionsLevel1;
-                CurrentNPCPositions = npcCardPositionsLevel1;
-                break;
-            case 2:
-                CurrentPlayerPositions = playerCardPositionsLevel2;
-                CurrentNPCPositions = npcCardPositionsLevel2;
-                break;
-            case 3:
-                CurrentPlayerPositions = playerCardPositionsLevel3;
-                CurrentNPCPositions = npcCardPositionsLevel3;
-                break;
-            default:
-                Debug.LogError("Invalid level!");
-                return;
+            CurrentPlayerPositions = playerCardPositionsLevel1;
+            CurrentNPCPositions = npcCardPositionsLevel1;
         }
-
-        Debug.Log($"Level {level} started. Spawning cards...");
-
-        if (deckManager.DeckCount < CurrentPlayerPositions.Count + CurrentNPCPositions.Count)
+        else if (level == 2)
         {
-            Debug.LogError("Not enough cards in the deck!");
+            CurrentPlayerPositions = playerCardPositionsLevel2;
+            CurrentNPCPositions = npcCardPositionsLevel2;
+        }
+        else if (level == 3)
+        {
+            CurrentPlayerPositions = playerCardPositionsLevel3;
+            CurrentNPCPositions = npcCardPositionsLevel3;
+        }
+        else
+        {
+            Debug.LogError("Invalid level!");
             return;
         }
 
         SpawnCards(CurrentPlayerPositions, "Player");
         SpawnCards(CurrentNPCPositions, "NPC");
+        Debug.Log($"Level {level} started.");
     }
+
 
     private void SpawnCards(List<Transform> positions, string cardType)
     {
@@ -265,6 +260,24 @@ public class CardSpawner : MonoBehaviour
         StartLevel(CurrentLevel);
     }
 
+    public void DisableCardInteractivity()
+    {
+        foreach (var card in FindObjectsOfType<CardValue>())
+        {
+            card.SetInteractivity(false); // Kartların interaktivitesini kapat
+        }
+        Debug.Log("All cards are now non-interactive.");
+    }
 
+    public void EnableCardInteractivity()
+    {
+        foreach (var card in FindObjectsOfType<CardValue>())
+        {
+            card.SetInteractivity(true); // Kartların interaktivitesini aç
+        }
+        Debug.Log("All cards are now interactive.");
+    }
+
+   
 
 }
