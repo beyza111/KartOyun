@@ -10,6 +10,7 @@ public class NPCController : MonoBehaviour
     private TurnManager turnManager;
 
     private CardData lastDrawnCard; // NPC'nin son çektiği kart
+    //public CardDrawSoundManager soundManager; // Ses yöneticisi
 
     void Start()
     {
@@ -79,16 +80,19 @@ public class NPCController : MonoBehaviour
         var drawCard = DecideNPCMove();
         if (drawCard)
         {
+
             lastDrawnCard = deckManager.DrawCard(); // Çekilen kartı sakla
             cardSpawner.ReplaceLowestCard(cardSpawner.CurrentNPCPositions, lastDrawnCard, ref cardSpawner.npcScore);
             Debug.Log($"NPC drew card with value: {lastDrawnCard.cardValue}");
             uiManager.ShowNotification("NPC drew a card.");
+          //  soundManager.PlayCardDrawSound(); // Kart çekme sesiaaaaaaaaaaaaaaaaaaaaaaaaaaa
         }
         else
         {
             lastDrawnCard = null; // Pas geçildiği için son çekilen kart yok
             Debug.Log("NPC passed the turn.");
             uiManager.ShowNotification("NPC passed this turn.");
+            yield return new WaitForSeconds(0.5f); // İsteğe bağlı kısa bir bekleme
         }
 
         CalculateNPCScore();

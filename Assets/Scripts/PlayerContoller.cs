@@ -5,6 +5,8 @@ using UnityEngine;
 [RequireComponent(typeof(CharacterController))]
 public class PlayerController : MonoBehaviour
 {
+    
+
     public float moveSpeed = 5f;
     public float mouseSensitivity = 2f;
     public Transform cameraTransform; 

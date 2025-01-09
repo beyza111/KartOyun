@@ -133,7 +133,7 @@ public class TurnManager : MonoBehaviour
         {
             var newCard = cardSpawner.deckManager.DrawCard();
             cardSpawner.ReplaceLowestCard(cardSpawner.CurrentPlayerPositions, newCard, ref cardSpawner.playerScore);
-            uiManager.ShowNotification("Player drew a card.");
+            uiManager.ShowNotification("Bir kart çektiniz!");
         }
         else
         {

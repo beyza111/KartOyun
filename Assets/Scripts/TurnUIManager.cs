@@ -44,8 +44,8 @@ public class TurnUIManager : MonoBehaviour
 
     public void UpdateScores(int playerScore, int npcScore)
     {
-        playerScoreText.text = $"Player Score: {playerScore}";
-        npcScoreText.text = $"NPC Score: {npcScore}";
+        playerScoreText.text = $"Erica Skor: {playerScore}";
+        npcScoreText.text = $"Cin Skor: {npcScore}";
     }
 
     public void ShowNotification(string message, float duration = 3f)
@@ -64,7 +64,7 @@ public class TurnUIManager : MonoBehaviour
 
     public void OnPlayerDrawButton()
     {
-        Debug.Log("Player drew a card.");
+        Debug.Log("Bir kart çektiniz!");
         if (turnManager != null)
         {
             turnManager.PlayerTurn(true);
@@ -74,7 +74,7 @@ public class TurnUIManager : MonoBehaviour
 
     public void OnPlayerPassButton()
     {
-        Debug.Log("Player passed the turn.");
+        Debug.Log("Turu pas geçtiniz.");
         if (turnManager != null)
         {
             turnManager.PlayerTurn(false);
@@ -84,13 +84,13 @@ public class TurnUIManager : MonoBehaviour
 
     public void StartLockCardSelection()
     {
-        ShowNotification("Select a card to lock.");
+        ShowNotification("Korumak için bir kart seçiniz.");
         turnManager.StartLockSelection();
     }
 
     public void StartSwapCardSelection()
     {
-        ShowNotification("Select an opponent's card to swap.");
+        ShowNotification("Takas için bir kart seçiniz.");
         turnManager.StartSwapSelection();
     }
 }
