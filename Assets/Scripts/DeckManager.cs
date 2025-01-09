@@ -5,6 +5,7 @@ public class DeckManager : MonoBehaviour
 {
     public List<CardData> cardDatas;
     private List<CardData> deck = new List<CardData>();
+    [SerializeField] private int cardsPerLevel = 3;
 
     public int DeckCount => deck.Count;
 
@@ -12,6 +13,7 @@ public class DeckManager : MonoBehaviour
     {
         CreateDeck();
         ShuffleDeck();
+        Debug.Log($"Each card will have {cardsPerLevel} copies in the deck.");
     }
 
     public void CreateDeck()
@@ -19,41 +21,42 @@ public class DeckManager : MonoBehaviour
         deck.Clear();
         foreach (CardData card in cardDatas)
         {
-            for (int i = 0; i < 3; i++) // Her karttan 3 tane ekle
+            for (int i = 0; i < cardsPerLevel; i++) // cardsPerLevel kullanıldı
             {
                 deck.Add(card);
             }
         }
-        Debug.Log($"Deck created with {deck.Count} cards.");
+        Debug.Log($"Deck created with {deck.Count} cards. Each card has {cardsPerLevel} copies.");
     }
 
     public void ShuffleDeck()
     {
-        for (int i = 0; i < deck.Count; i++)
+        for (int i = deck.Count - 1; i > 0; i--) // Fisher-Yates algoritması
         {
-            int randomIndex = Random.Range(0, deck.Count);
+            int randomIndex = Random.Range(0, i + 1);
             (deck[i], deck[randomIndex]) = (deck[randomIndex], deck[i]);
         }
-        Debug.Log("Deck shuffled.");
+        Debug.Log("Deck shuffled (Fisher-Yates).");
     }
-
+    //bu fonks her el kart cekme saglar
     public CardData DrawCard()
     {
-        if (deck.Count > 0)
+        if (deck.Count == 0)
         {
-            CardData card = deck[0];
-            deck.RemoveAt(0);
-            return card;
+            Debug.LogWarning("Deck is empty. Resetting deck...");
+            ResetDeckForNewLevel();
+            return DrawCard();
         }
-        Debug.LogError("Deck is empty!");
-        return null;
+
+        CardData card = deck[0];
+        deck.RemoveAt(0);
+        return card;
     }
 
     public void ResetDeckForNewLevel()
     {
-        Debug.Log("Resetting deck for new level...");
+        Debug.Log($"Resetting deck for new level with {cardsPerLevel} copies per card...");
         CreateDeck();
         ShuffleDeck();
     }
 }
-

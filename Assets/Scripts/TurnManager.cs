@@ -1,6 +1,7 @@
 ﻿using System.Collections;
 using UnityEngine;
 using System;
+using System.Runtime.Serialization;
 
 public class TurnManager : MonoBehaviour
 {
@@ -13,22 +14,34 @@ public class TurnManager : MonoBehaviour
 
     public event Action OnLevelCompleted; // Level tamamlandığında tetiklenecek event
 
+    public ObjectManager objectManager; // ObjectManager referansı
+
+
     public CardValue PlayerLockedCard { get; private set; }
     public CardValue PlayerSelectedCardForSwap { get; private set; }
 
     private bool isSwapAndLockTurnActive = false;
     private bool isPlayerActionComplete = false; // Oyuncu aksiyonu tamamladı mı?
+    public bool isLevelComplete = true;
+
 
     public void StartGame()
     {
         Debug.Log("Starting Game...");
         cardSpawner.StartLevel();
         UpdateCardInteractivity();
+        cardSpawner.EnableCardInteractivity(); // Kartları interaktif hale getir
         PlayTurn();
     }
 
     public void PlayTurn()
     {
+        if (isLevelComplete)
+        {
+            Debug.LogWarning("Cannot play turn. Level is complete.");
+            return;
+        }
+
         Debug.Log($"Turn {currentTurn} started.");
         isPlayerActionComplete = false; // Her tur başlangıcında sıfırla
         UpdateCardInteractivity();
@@ -53,6 +66,8 @@ public class TurnManager : MonoBehaviour
                 HandleSwapAndLock();
                 break;
             case 5:
+                HandleDrawOrPass();
+                break;
             case 6:
                 HandleDrawWithHint();
                 break;
@@ -60,7 +75,7 @@ public class TurnManager : MonoBehaviour
                 HandleFinalTurn();
                 break;
             case 8: // 2. Level'da ekstra tur
-                if (cardSpawner.CurrentLevel == 2) // Sadece 2. Level için 8. tur oynansın
+                if (cardSpawner.CurrentLevel == 2)
                 {
                     HandleDrawOrPass();
                 }
@@ -75,6 +90,7 @@ public class TurnManager : MonoBehaviour
                 break;
         }
     }
+
 
     private int GetTurnsForCurrentLevel()
     {
@@ -243,7 +259,16 @@ public class TurnManager : MonoBehaviour
         Debug.Log("Level Complete!");
         uiManager.ShowNotification("Level Complete!");
 
-        OnLevelCompleted?.Invoke(); // Level tamamlandığını bildirin
+        isLevelComplete = true; // Level tamamlandığında işaretle
+        OnLevelCompleted?.Invoke(); // Level tamamlandığını bildir
+        cardSpawner.DisableCardInteractivity(); // Kart etkileşimlerini kapat
+
+        // Objeleri seviyeye göre etkinleştir
+        objectManager.ShowObjectsForLevel(cardSpawner.CurrentLevel);
+
+        currentTurn = 1; // Turu sıfırla
+        cardSpawner.CurrentLevel++; // Yeni seviyeye geç
+        Debug.Log($"Next level: {cardSpawner.CurrentLevel}. Sit to start the new level.");
     }
 
     private void PlayNPCTurn()
