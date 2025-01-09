@@ -1,6 +1,7 @@
 ﻿using System.Collections;
 using UnityEngine;
 using System;
+using System.Runtime.Serialization;
 
 public class TurnManager : MonoBehaviour
 {
@@ -12,6 +13,9 @@ public class TurnManager : MonoBehaviour
     public NPCController npcController;
 
     public event Action OnLevelCompleted; // Level tamamlandığında tetiklenecek event
+
+    public ObjectManager objectManager; // ObjectManager referansı
+
 
     public CardValue PlayerLockedCard { get; private set; }
     public CardValue PlayerSelectedCardForSwap { get; private set; }
@@ -258,6 +262,9 @@ public class TurnManager : MonoBehaviour
         isLevelComplete = true; // Level tamamlandığında işaretle
         OnLevelCompleted?.Invoke(); // Level tamamlandığını bildir
         cardSpawner.DisableCardInteractivity(); // Kart etkileşimlerini kapat
+
+        // Objeleri seviyeye göre etkinleştir
+        objectManager.ShowObjectsForLevel(cardSpawner.CurrentLevel);
 
         currentTurn = 1; // Turu sıfırla
         cardSpawner.CurrentLevel++; // Yeni seviyeye geç
