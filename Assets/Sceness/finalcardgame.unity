@@ -1007,7 +1007,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   moveSpeed: 5
-  mouseSensitivity: 2
+  gravity: -9.81
+  mouseSensitivity: 1.8
   cameraTransform: {fileID: 819276179}
 --- !u!136 &334416672
 CapsuleCollider:
