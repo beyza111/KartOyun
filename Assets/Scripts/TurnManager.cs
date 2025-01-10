@@ -74,23 +74,45 @@ public class TurnManager : MonoBehaviour
             case 7:
                 HandleFinalTurn();
                 break;
-            case 8: // 2. Level'da ekstra tur
-                if (cardSpawner.CurrentLevel == 2)
+            case 8:
+                if (cardSpawner.CurrentLevel == 2 || cardSpawner.CurrentLevel == 3)
                 {
                     HandleDrawOrPass();
                 }
                 else
                 {
-                    Debug.LogWarning("8. tur sadece Level 2 için geçerlidir!");
+                    Debug.LogWarning("Turn 8 is only valid for Level 2 or Level 3.");
+                    EndLevel();
+                }
+                break;
+            case 9:
+                if (cardSpawner.CurrentLevel == 3)
+                {
+                    ShowScoreDifference();
+                }
+                else
+                {
+                    Debug.LogWarning("Turn 9 is only valid for Level 3.");
+                    EndLevel();
+                }
+                break;
+            case 10:
+                if (cardSpawner.CurrentLevel == 3)
+                {
+                    HandleDrawOrPass();
+                }
+                else
+                {
+                    Debug.LogWarning("Turn 10 is only valid for Level 3.");
                     EndLevel();
                 }
                 break;
             default:
                 EndLevel();
                 break;
+
         }
     }
-
 
     private int GetTurnsForCurrentLevel()
     {
@@ -98,13 +120,12 @@ public class TurnManager : MonoBehaviour
         {
             case 1: return 7; // 1. Level için 7 tur
             case 2: return 8; // 2. Level için 8 tur
-            case 3: return 7; // 3. Level için 7 tur
+            case 3: return 10; // 3. Level için 10 tur
             default:
                 Debug.LogError("Invalid level!");
                 return 7; // Varsayılan olarak 7 tur
         }
     }
-
 
 
     public void StartLockSelection()
@@ -325,4 +346,18 @@ public class TurnManager : MonoBehaviour
             card.SetSwapTurnActive(currentTurn == 4);
         }
     }
+
+    //calismazsa cikar
+    private void ShowScoreDifference()
+    {
+        int scoreDifference = Mathf.Abs(cardSpawner.playerScore - cardSpawner.npcScore);
+        string leader = cardSpawner.playerScore > cardSpawner.npcScore ? "Player" : "NPC";
+
+        uiManager.ShowNotification($"Score difference: {scoreDifference}. {leader} is leading.");
+        Debug.Log($"Score difference: {scoreDifference}. {leader} is leading.");
+
+        currentTurn++;
+        PlayTurn();
+    }
+
 }

@@ -97,3 +97,4 @@ public class ChairInteraction : MonoBehaviour
         }
     }
 }
+
