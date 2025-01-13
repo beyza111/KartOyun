@@ -7,6 +7,9 @@ public class TurnUIManager : MonoBehaviour
     public TMP_Text playerScoreText; // Player score text
     public TMP_Text npcScoreText; // NPC score text
     public TMP_Text notificationText; // Notification text
+    public GameObject promptUI; // Prompt UI objesi
+    public TMPro.TextMeshProUGUI promptText; // Prompt mesajını gösterecek Text
+
 
     private TurnManager turnManager;
 

@@ -33,43 +33,40 @@ public class NPCController : MonoBehaviour
     {
         uiManager.ShowNotification("NPC is swapping and locking cards...");
 
-        // NPC'nin en yüksek 3 kartını bul ve birini kilitle
+        // NPC kendi en yüksek 3 kartından birini kilitler
         var npcTopCards = cardSpawner.GetTopCards(cardSpawner.CurrentNPCPositions, 3);
-        var lockedCard = npcTopCards[UnityEngine.Random.Range(0, npcTopCards.Count)];
-        lockedCard.IsLocked = true;
-        Debug.Log($"NPC locked card: {lockedCard.value}");
+        cardSpawner.NPCLockedCard = npcTopCards[UnityEngine.Random.Range(0, npcTopCards.Count)];
+        cardSpawner.NPCLockedCard.IsLocked = true;
+        Debug.Log($"NPC locked card: {cardSpawner.NPCLockedCard.value}");
 
         // Oyuncunun kartlarından birini seç
-        var playerTopCards = cardSpawner.GetTopCards(cardSpawner.CurrentPlayerPositions, 3);
-        var chosenCard = playerTopCards[UnityEngine.Random.Range(0, playerTopCards.Count)];
-
-        // Kartların pozisyonlarını kontrol et
-        if (!cardSpawner.CurrentPlayerPositions.Contains(chosenCard.transform.parent) ||
-            !cardSpawner.CurrentNPCPositions.Contains(lockedCard.transform.parent))
+        var playerLowestCard = cardSpawner.GetLowestCard(cardSpawner.CurrentPlayerPositions);
+        if (playerLowestCard == null || playerLowestCard.IsLocked)
         {
-            Debug.LogError("Invalid card positions during swap.");
-            uiManager.ShowNotification("Swap failed due to invalid card positions.");
+            Debug.LogWarning("NPC could not find a valid player card to swap.");
+            uiManager.ShowNotification("NPC's swap attempt failed.");
             onTurnComplete?.Invoke();
             return;
         }
 
-        // Takas işlemi
-        if (!chosenCard.IsLocked)
+        // NPC en düşük kartını bul ve swap yap
+        var npcSwapCard = cardSpawner.GetLowestCard(cardSpawner.CurrentNPCPositions);
+        if (npcSwapCard != null && !npcSwapCard.IsLocked)
         {
-            var npcSwapCard = npcTopCards[UnityEngine.Random.Range(0, npcTopCards.Count)];
-            cardSpawner.SwapCards(chosenCard, npcSwapCard);
-            Debug.Log($"NPC swapped Player Card {chosenCard.value} with NPC Card {npcSwapCard.value}.");
+            cardSpawner.SwapCards(playerLowestCard, npcSwapCard);
+            Debug.Log($"NPC swapped Player card ({playerLowestCard.value}) with NPC card ({npcSwapCard.value}).");
             uiManager.ShowNotification("NPC swapped a card.");
         }
         else
         {
-            Debug.Log("NPC's swap attempt failed. Player's card was locked.");
+            Debug.LogWarning("NPC could not swap because its card was locked.");
             uiManager.ShowNotification("NPC's swap attempt failed. Card is locked.");
         }
 
         CalculateNPCScore();
         onTurnComplete?.Invoke();
     }
+
 
     private IEnumerator NPCTurnSequence(Action onTurnComplete)
     {
