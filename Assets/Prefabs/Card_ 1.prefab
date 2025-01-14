@@ -14,7 +14,7 @@ GameObject:
   - component: {fileID: 694346675629248220}
   m_Layer: 0
   m_Name: Card_ 1
-  m_TagString: Card
+  m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -118,11 +118,6 @@ PrefabInstance:
         type: 3}
       propertyPath: m_Name
       value: Back
-      objectReference: {fileID: 0}
-    - target: {fileID: 2252970879041521435, guid: b4ac51541721963449dbf0f7cd114e3d,
-        type: 3}
-      propertyPath: m_Layer
-      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 8263279827175166241, guid: b4ac51541721963449dbf0f7cd114e3d,
         type: 3}

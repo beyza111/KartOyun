@@ -1,5 +1,6 @@
 ﻿using UnityEngine;
 using UnityEngine.EventSystems;
+using System.Collections;
 
 public class CardValue : MonoBehaviour, IPointerClickHandler
 {
@@ -11,9 +12,10 @@ public class CardValue : MonoBehaviour, IPointerClickHandler
     private bool isSelected = false; // Kart seçili mi?
     private Color originalColor; // Kartın orijinal rengi
     private TurnManager turnManager;
+    private Coroutine hoverCoroutine; // Bekleme kontrolü için coroutine
 
-   
-    private bool isInteractable = false; // Kartın tıklanabilir olup olmadığını kontrol etmek için
+    private static bool playerCardLocked = false; // Oyuncu kartını kilitledi mi?
+    private static bool npcCardSelected = false; // NPC kartı seçildi mi?
 
     private void Awake()
     {
@@ -36,55 +38,12 @@ public class CardValue : MonoBehaviour, IPointerClickHandler
 
     public void OnPointerClick(PointerEventData eventData)
     {
-        // Kart tıklamaları sadece Swap ve Lock turunda işlenir
-        if (!turnManager.IsSwapAndLockTurn() || IsLocked)
-        {
-            Debug.Log("Card click ignored: Not swap turn or locked.");
-            return;
-        }
-
-        // Oyuncunun kartına tıklanırsa ve henüz kilitli bir kart yoksa
-        if (IsPlayerCard())
-        {
-            if (turnManager.PlayerLockedCard == null)
-            {
-                turnManager.LockPlayerCard(this);
-                turnManager.UpdateCardInteractivity();
-                Debug.Log($"Player locked card: {value}");
-            }
-            else
-            {
-                Debug.LogWarning("Player can only lock one card. Ignoring click.");
-            }
-        }
-        // NPC'nin kartına tıklanırsa ve henüz bir kart seçilmediyse
-        else if (IsNPCCard())
-        {
-            if (turnManager.PlayerSelectedCardForSwap == null)
-            {
-                turnManager.SelectPlayerCardForSwap(this);
-                turnManager.UpdateCardInteractivity();
-                Debug.Log($"Player selected NPC card for swap: {value}");
-            }
-            else
-            {
-                Debug.LogWarning("Player can only select one NPC card for swap. Ignoring click.");
-            }
-        }
-        else
-        {
-            Debug.LogWarning("Invalid card selection.");
-        }
+        Debug.LogWarning("Manual selection is disabled. Use hover to select.");
     }
-
-
-
-
-
 
     public void HighlightCard(bool highlight)
     {
-        if (isInteractable && cardRenderer != null && !isSelected)
+        if (cardRenderer != null && !isSelected)
         {
             cardRenderer.material.color = highlight ? originalColor * 1.5f : originalColor;
         }
@@ -92,21 +51,64 @@ public class CardValue : MonoBehaviour, IPointerClickHandler
 
     private void OnMouseEnter()
     {
-        if (isInteractable && !isSelected)
+        if (hoverCoroutine == null && turnManager.IsSwapAndLockTurn())
         {
             HighlightCard(true);
+
+            if (IsPlayerCard() && !playerCardLocked)
+            {
+                hoverCoroutine = StartCoroutine(LockAfterDelay());
+            }
+            else if (IsNPCCard() && !npcCardSelected)
+            {
+                hoverCoroutine = StartCoroutine(SwapSelectionAfterDelay());
+            }
         }
     }
 
     private void OnMouseExit()
     {
+        if (hoverCoroutine != null)
+        {
+            StopCoroutine(hoverCoroutine);
+            hoverCoroutine = null;
+        }
+
         if (!isSelected)
         {
             HighlightCard(false);
         }
     }
 
-    public void SelectCard(bool select, bool isSwapPhase = false)
+    private IEnumerator LockAfterDelay()
+    {
+        yield return new WaitForSeconds(3f);
+
+        if (!IsLocked && !playerCardLocked)
+        {
+            turnManager.LockPlayerCard(this);
+            playerCardLocked = true;
+            isSelected = true;
+            HighlightCard(true);
+            Debug.Log($"Card {value} locked after 3 seconds.");
+        }
+    }
+
+    private IEnumerator SwapSelectionAfterDelay()
+    {
+        yield return new WaitForSeconds(3f);
+
+        if (!npcCardSelected)
+        {
+            turnManager.SelectPlayerCardForSwap(this);
+            npcCardSelected = true;
+            isSelected = true;
+            HighlightCard(true);
+            Debug.Log($"Player selected NPC card {value} for swap after 3 seconds.");
+        }
+    }
+
+    public void SelectCard(bool select)
     {
         isSelected = select;
         cardRenderer.material.color = select ? originalColor * 2f : originalColor;
@@ -117,31 +119,6 @@ public class CardValue : MonoBehaviour, IPointerClickHandler
         }
     }
 
-    public void SetInteractivity(bool isInteractive)
-    {
-        isInteractable = isInteractive;
-        GetComponent<Collider>().enabled = isInteractive;
-        Debug.Log($"Card {name} interactivity set to {isInteractive}");
-    }
-
-
-    public bool IsPlayerCard()
-    {
-        bool isPlayer = turnManager.cardSpawner.CurrentPlayerPositions.Contains(transform.parent);
-        Debug.Log($"{name} (Value: {value}) isPlayer: {isPlayer}, Parent: {transform.parent.name}");
-        return isPlayer;
-    }
-
-    public bool IsNPCCard()
-    {
-        bool isNPC = turnManager.cardSpawner.CurrentNPCPositions.Contains(transform.parent);
-        Debug.Log($"{name} (Value: {value}) isNPC: {isNPC}, Parent: {transform.parent.name}");
-        return isNPC;
-    }
-
-
-
-
     public void SetSwapTurnActive(bool isActive)
     {
         if (cardRenderer != null)
@@ -150,10 +127,38 @@ public class CardValue : MonoBehaviour, IPointerClickHandler
         }
     }
 
-    public bool IsInteractable()
+    public static void ResetTurnSelections()
     {
-        return !IsLocked && isInteractable; // Kart kilitli değil ve interaktifse
+        playerCardLocked = false;
+        npcCardSelected = false;
     }
 
+    private bool IsPlayerCard()
+    {
+        return turnManager.cardSpawner.CurrentPlayerPositions.Contains(transform.parent);
+    }
+
+    private bool IsNPCCard()
+    {
+        return turnManager.cardSpawner.CurrentNPCPositions.Contains(transform.parent);
+    }
+
+    public void SetInteractivity(bool isInteractive)
+    {
+        GetComponent<Collider>().enabled = isInteractive;
+        Debug.Log($"Card {name} interactivity set to {isInteractive}");
+    }
 }
+
+
+
+
+
+
+
+
+
+
+
+
 

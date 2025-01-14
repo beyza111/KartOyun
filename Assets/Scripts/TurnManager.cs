@@ -16,13 +16,13 @@ public class TurnManager : MonoBehaviour
 
     public ObjectManager objectManager; // ObjectManager referansı
 
+
     public CardValue PlayerLockedCard { get; private set; }
     public CardValue PlayerSelectedCardForSwap { get; private set; }
 
     private bool isSwapAndLockTurnActive = false;
     private bool isPlayerActionComplete = false; // Oyuncu aksiyonu tamamladı mı?
     public bool isLevelComplete = true;
-    public static TurnManager Instance { get; set; } // Singleton Instance
 
 
     public void StartGame()
@@ -30,19 +30,8 @@ public class TurnManager : MonoBehaviour
         Debug.Log("Starting Game...");
         cardSpawner.StartLevel();
         UpdateCardInteractivity();
+        cardSpawner.EnableCardInteractivity(); // Kartları interaktif hale getir
         PlayTurn();
-    }
-
-    private void Awake()
-    {
-        if (Instance == null)
-        {
-            Instance = this;
-        }
-        else
-        {
-            Destroy(gameObject); // Birden fazla Instance varsa yok et
-        }
     }
 
     public void PlayTurn()
@@ -65,25 +54,6 @@ public class TurnManager : MonoBehaviour
             return;
         }
 
-        switch (cardSpawner.CurrentLevel)
-        {
-            case 1:
-                HandleLevel1Turns();
-                break;
-            case 2:
-                HandleLevel2Turns();
-                break;
-            case 3:
-                HandleLevel3Turns();
-                break;
-            default:
-                Debug.LogError("Invalid level!");
-                break;
-        }
-    }
-
-    private void HandleLevel1Turns()
-    {
         switch (currentTurn)
         {
             case 1:
@@ -96,79 +66,51 @@ public class TurnManager : MonoBehaviour
                 HandleSwapAndLock();
                 break;
             case 5:
-            case 6:
                 HandleDrawOrPass();
+                break;
+            case 6:
+                HandleDrawWithHint();
                 break;
             case 7:
                 HandleFinalTurn();
                 break;
-            default:
-                EndLevel();
-                break;
-        }
-    }
-
-    private void HandleLevel2Turns()
-    {
-        switch (currentTurn)
-        {
-            case 1:
-            case 2:
-            case 3:
-                HandleDrawOrPass();
-                break;
-            case 4:
-                isSwapAndLockTurnActive = true;
-                HandleSwapAndLock();
-                break;
-            case 5:
-            case 6:
-                HandleDrawOrPass();
-                break;
-            case 7:
-                HandleDrawWithHint();
-                break;
             case 8:
-                HandleFinalTurn();
-                break;
-            default:
-                EndLevel();
-                break;
-        }
-    }
-
-    private void HandleLevel3Turns()
-    {
-        switch (currentTurn)
-        {
-            case 1:
-            case 2:
-            case 3:
-                HandleDrawOrPass();
-                break;
-            case 4:
-                isSwapAndLockTurnActive = true;
-                HandleSwapAndLock();
-                break;
-            case 5:
-            case 6:
-                HandleDrawOrPass();
-                break;
-            case 7:
-                HandleDrawWithHint();
-                break;
-            case 8:
-                HandleDrawOrPass();
+                if (cardSpawner.CurrentLevel == 2 || cardSpawner.CurrentLevel == 3)
+                {
+                    HandleDrawOrPass();
+                }
+                else
+                {
+                    Debug.LogWarning("Turn 8 is only valid for Level 2 or Level 3.");
+                    EndLevel();
+                }
                 break;
             case 9:
-                ShowScoreDifference();
+                if (cardSpawner.CurrentLevel == 3)
+                {
+                    ShowScoreDifference();
+                }
+                else
+                {
+                    Debug.LogWarning("Turn 9 is only valid for Level 3.");
+                    EndLevel();
+                }
                 break;
             case 10:
-                HandleFinalTurn();
+                if (cardSpawner.CurrentLevel == 3)
+                {
+                    HandleDrawOrPass();
+                }
+                else
+                {
+                    Debug.LogWarning("Turn 10 is only valid for Level 3.");
+                    EndLevel();
+                }
                 break;
             default:
                 EndLevel();
                 break;
+
         }
     }
 
@@ -184,7 +126,6 @@ public class TurnManager : MonoBehaviour
                 return 7; // Varsayılan olarak 7 tur
         }
     }
-
 
 
     public void StartLockSelection()
@@ -250,7 +191,6 @@ public class TurnManager : MonoBehaviour
     private IEnumerator SwapAndLockPhase()
     {
         Debug.Log("Starting Swap and Lock Phase...");
-        UpdateCardInteractivity(); // Sadece 4. turda kartları interaktif yap
         uiManager.ShowNotification("Select one of your cards to lock.");
         yield return StartCoroutine(WaitForPlayerLockSelection());
 
@@ -259,25 +199,33 @@ public class TurnManager : MonoBehaviour
         uiManager.ShowNotification("Select one of NPC's cards to swap.");
         yield return StartCoroutine(WaitForPlayerSwapSelection());
 
-        if (PlayerLockedCard == null || PlayerSelectedCardForSwap == null)
+        if (!cardSpawner.CurrentPlayerPositions.Contains(PlayerLockedCard.transform.parent) ||
+            !cardSpawner.CurrentNPCPositions.Contains(PlayerSelectedCardForSwap.transform.parent))
         {
-            Debug.LogError("Player did not complete the lock or swap selection.");
-            uiManager.ShowNotification("Selection failed. Turn skipped.");
+            Debug.LogError("Invalid card positions during Swap and Lock.");
+            uiManager.ShowNotification("Invalid card positions. Swap failed.");
             currentTurn++;
             PlayTurn();
             yield break;
         }
 
         string swapDetails = cardSpawner.EvaluateSwapAndLock(PlayerLockedCard, PlayerSelectedCardForSwap);
-        uiManager.ShowNotification(swapDetails);
+        if (!swapDetails.Contains("swapped"))
+        {
+            Debug.Log("Swap gerçekleşmedi, kartlar korundu.");
+            uiManager.ShowNotification("Swap failed. Cards remained locked.");
+        }
+        else
+        {
+            Debug.Log(swapDetails);
+            uiManager.ShowNotification(swapDetails);
+        }
 
-        isSwapAndLockTurnActive = false; // Faz tamamlandı
-        UpdateCardInteractivity(); // Kartları tekrar pasif yap
+        isSwapAndLockTurnActive = false;
         Debug.Log("Swap and Lock Phase Completed.");
         currentTurn++;
         PlayTurn();
     }
-
 
     private IEnumerator WaitForPlayerLockSelection()
     {
@@ -332,23 +280,17 @@ public class TurnManager : MonoBehaviour
         Debug.Log("Level Complete!");
         uiManager.ShowNotification("Level Complete!");
 
-        isLevelComplete = true; // Level tamamlandığını işaretle
+        isLevelComplete = true; // Level tamamlandığında işaretle
         OnLevelCompleted?.Invoke(); // Level tamamlandığını bildir
         cardSpawner.DisableCardInteractivity(); // Kart etkileşimlerini kapat
 
         // Objeleri seviyeye göre etkinleştir
         objectManager.ShowObjectsForLevel(cardSpawner.CurrentLevel);
 
-        // Yeni seviyeye geç
         currentTurn = 1; // Turu sıfırla
-        cardSpawner.CurrentLevel++; // Seviyeyi artır
-        isLevelComplete = false; // Yeni seviye için level tamamlanmadı olarak işaretle
-        ResetCardSelections(); // Kart seçimlerini sıfırla
-
+        cardSpawner.CurrentLevel++; // Yeni seviyeye geç
         Debug.Log($"Next level: {cardSpawner.CurrentLevel}. Sit to start the new level.");
-        StartGame(); // Yeni seviyeyi başlat
     }
-
 
     private void PlayNPCTurn()
     {
@@ -361,131 +303,61 @@ public class TurnManager : MonoBehaviour
             PlayTurn();
         });
     }
+
     public void LockPlayerCard(CardValue card)
     {
-        if (PlayerLockedCard == null && card.IsPlayerCard())
+        if (PlayerLockedCard == null)
         {
             PlayerLockedCard = card;
-            card.SelectCard(true);
             Debug.Log($"Player locked card: {card.value}");
+            card.SelectCard(true);
+            isPlayerActionComplete = true;
         }
         else
         {
-            Debug.LogWarning("You can only lock one player card.");
+            Debug.LogWarning("Player has already locked a card.");
         }
     }
-
-
 
     public void SelectPlayerCardForSwap(CardValue card)
     {
-        if (PlayerSelectedCardForSwap == null && card.IsNPCCard())
+        if (PlayerSelectedCardForSwap == null)
         {
             PlayerSelectedCardForSwap = card;
+            Debug.Log($"Player selected card for swap: {card.value}");
             card.SelectCard(true);
-            Debug.Log($"Player selected NPC card for swap: {card.value}");
         }
         else
         {
-            Debug.LogWarning("You can only select one NPC card for swap.");
+            Debug.LogWarning("Player has already selected a card for swap.");
         }
     }
-
-
 
     public void UpdateScores()
-{
-    uiManager.UpdateScores(cardSpawner.playerScore, cardSpawner.npcScore);
-    Debug.Log($"Player Score: {cardSpawner.playerScore}, NPC Score: {cardSpawner.npcScore}");
-}
+    {
+        uiManager.UpdateScores(cardSpawner.playerScore, cardSpawner.npcScore);
+        Debug.Log($"Player Score: {cardSpawner.playerScore}, NPC Score: {cardSpawner.npcScore}");
+    }
 
-    public void UpdateCardInteractivity()
+    private void UpdateCardInteractivity()
     {
         foreach (var card in FindObjectsOfType<CardValue>())
         {
-            if (currentTurn == 4)
-            {
-                if (card.IsPlayerCard() && PlayerLockedCard == null)
-                {
-                    card.SetInteractivity(true);
-                }
-                else if (card.IsNPCCard() && PlayerSelectedCardForSwap == null)
-                {
-                    card.SetInteractivity(true);
-                }
-                else
-                {
-                    card.SetInteractivity(false);
-                }
-            }
-            else
-            {
-                card.SetInteractivity(false); // Diğer turlarda tüm kartlar pasif
-            }
+            card.SetSwapTurnActive(currentTurn == 4);
         }
-
-        Debug.Log($"Kartların interaktivitesi {currentTurn}. tur için güncellendi.");
     }
 
-
+    //calismazsa cikar
     private void ShowScoreDifference()
-{
-    int scoreDifference = Mathf.Abs(cardSpawner.playerScore - cardSpawner.npcScore);
-    string leader = cardSpawner.playerScore > cardSpawner.npcScore ? "Player" : "NPC";
-
-    uiManager.ShowNotification($"Score difference: {scoreDifference}. {leader} is leading.");
-    Debug.Log($"Score difference: {scoreDifference}. {leader} is leading.");
-
-    currentTurn++;
-    PlayTurn();
-}
-
-public void CheckSwapTurn()
-{
-    if (IsSwapAndLockTurn())
     {
-        Cursor.visible = true; // 4. turda mouse görünür
-        Cursor.lockState = CursorLockMode.None;
-    }
-    else
-    {
-        Cursor.visible = false; // Diğer turlarda mouse gizli
-        Cursor.lockState = CursorLockMode.Locked;
-    }
-}
+        int scoreDifference = Mathf.Abs(cardSpawner.playerScore - cardSpawner.npcScore);
+        string leader = cardSpawner.playerScore > cardSpawner.npcScore ? "Player" : "NPC";
 
-    //yeni
-    public int GetCurrentTurn()
-    {
-        return currentTurn;
-    }
+        uiManager.ShowNotification($"Score difference: {scoreDifference}. {leader} is leading.");
+        Debug.Log($"Score difference: {scoreDifference}. {leader} is leading.");
 
-    private void DisableOtherCardsInCategory(string category)
-    {
-        foreach (var card in FindObjectsOfType<CardValue>())
-        {
-            if (category == "Player" && card.IsPlayerCard() && card != PlayerLockedCard)
-            {
-                card.SetInteractivity(false);
-            }
-            else if (category == "NPC" && card.IsNPCCard() && card != PlayerSelectedCardForSwap)
-            {
-                card.SetInteractivity(false);
-            }
-        }
-    }
-    public void ResetCardSelections()
-    {
-        PlayerLockedCard = null;
-        PlayerSelectedCardForSwap = null;
-
-        foreach (var card in FindObjectsOfType<CardValue>())
-        {
-            card.SelectCard(false);
-            card.SetInteractivity(false);
-        }
-
-        Debug.Log("All card selections have been reset.");
+        currentTurn++;
+        PlayTurn();
     }
 
 }

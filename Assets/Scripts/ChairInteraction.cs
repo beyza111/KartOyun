@@ -1,24 +1,31 @@
 ﻿using UnityEngine;
-using TMPro; // TMP için gerekli
 
 public class ChairInteraction : MonoBehaviour
 {
-    public Transform sitPoint;
-    public TurnManager turnManager;
-    public TurnUIManager uiManager;
-    public Transform leaveSpawnPoint; // Sandalyeden ayrılınca spawn olunacak nokta
-    public TMP_Text interactionText; // [E] Otur metni (TMP Pro kullanıyor)
+    public Transform sitPoint; // Oyuncunun oturacağı nokta
+    public TurnManager turnManager; // TurnManager referansı
+    public TurnUIManager uiManager; // UI Manager referansı
+    public Transform leaveSpawnPoint; // Oyuncunun kalktıktan sonra spawn olacağı nokta
 
-    private bool isPlayerNear = false;
-    private Transform playerTransform;
-    private bool welcomeMessageShown = false;
-    private bool isSitting = false;
+    private bool isPlayerNear = false; // Oyuncu sandalyeye yakın mı?
+    private Transform playerTransform; // Oyuncunun transform referansı
+    private bool isSitting = false; // Oyuncu oturuyor mu?
 
-    void Start()
+    private void Start()
     {
-        if (interactionText != null)
+        // Oyuncuyu bul ve referans atamasını yap
+        if (playerTransform == null)
         {
-            interactionText.enabled = false; // Başlangıçta metni gizle
+            GameObject player = GameObject.FindGameObjectWithTag("Player");
+            if (player != null)
+            {
+                playerTransform = player.transform;
+                Debug.Log("Player Transform başarıyla atandı.");
+            }
+            else
+            {
+                Debug.LogError("Player GameObject sahnede bulunamadı!");
+            }
         }
     }
 
@@ -28,11 +35,11 @@ public class ChairInteraction : MonoBehaviour
         {
             if (isSitting)
             {
-                Leave();
+                Leave(); // Kalk
             }
             else
             {
-                Sit();
+                Sit(); // Otur
             }
         }
     }
@@ -48,34 +55,11 @@ public class ChairInteraction : MonoBehaviour
         playerTransform.position = sitPoint.position;
         playerTransform.rotation = sitPoint.rotation;
 
-        var playerController = playerTransform.GetComponent<PlayerController>();
-        if (playerController != null)
-        {
-            playerController.enabled = false;
-            playerController.isPlayingCardGame = true;
-            playerController.mainCamera.enabled = false;
-            playerController.cardGameCamera.enabled = true;
-        }
-
         isSitting = true;
 
-        if (!welcomeMessageShown)
-        {
-            uiManager.ShowNotification("Oyuna Hoş Geldiniz!");
-            welcomeMessageShown = true;
-        }
-
-        // Değişkenleri sıfırla ve oyunu başlat
-        turnManager.isLevelComplete = false;
-        turnManager.ResetCardSelections(); // Kart seçimlerini sıfırla
-        turnManager.StartGame(); // Yeni seviyeyi başlat
-
-        if (interactionText != null)
-        {
-            interactionText.enabled = false; // Oturunca metni gizle
-        }
+        uiManager.ShowNotification("Oyuna Hoş Geldiniz!");
+        turnManager.StartGame();
     }
-
 
     void Leave()
     {
@@ -88,45 +72,18 @@ public class ChairInteraction : MonoBehaviour
         playerTransform.position = leaveSpawnPoint.position;
         playerTransform.rotation = leaveSpawnPoint.rotation;
 
-        var playerController = playerTransform.GetComponent<PlayerController>();
-        if (playerController != null)
-        {
-            playerController.enabled = true;
-            playerController.isPlayingCardGame = false;
-            playerController.mainCamera.enabled = true;
-            playerController.cardGameCamera.enabled = false;
-        }
-
-        var characterController = playerTransform.GetComponent<CharacterController>();
-        if (characterController != null)
-        {
-            characterController.enabled = true;
-        }
-
         isSitting = false;
 
         uiManager.ShowNotification("Oyundan ayrıldınız. Yeni bir seviyeye geçmek için tekrar E'ye basın.");
-
-        if (interactionText != null)
-        {
-            interactionText.enabled = true;
-        }
     }
-
-
-
 
     void OnTriggerEnter(Collider other)
     {
         if (other.CompareTag("Player"))
         {
+            Debug.Log("Player sandalyeye yaklaştı.");
             isPlayerNear = true;
             playerTransform = other.transform;
-
-            if (interactionText != null && !isSitting)
-            {
-                interactionText.enabled = true; // Oyuncu yaklaştığında metni göster
-            }
         }
     }
 
@@ -134,13 +91,10 @@ public class ChairInteraction : MonoBehaviour
     {
         if (other.CompareTag("Player"))
         {
+            Debug.Log("Player sandalyeden uzaklaştı.");
             isPlayerNear = false;
             playerTransform = null;
-
-            if (interactionText != null)
-            {
-                interactionText.enabled = false; // Oyuncu uzaklaştığında metni gizle
-            }
         }
     }
 }
+
